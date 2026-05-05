@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShipTrack — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface-2: #1a1a1a;
+      --border: #222222;
+      --border-subtle: #1a1a1a;
+      --text: #e8e8e8;
+      --text-muted: #666;
+      --text-dim: #444;
+      --accent: #ff6b35;
+      --accent-dim: rgba(255,107,53,0.12);
+      --accent-border: rgba(255,107,53,0.25);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.12);
+      --blue: #3b82f6;
+      --yellow: #eab308;
+      --purple: #a855f7;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'IBM Plex Sans', sans-serif;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+
+    /* LAYOUT */
+    .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 220px; min-width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      padding: 0;
+    }
+
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-mark {
+      width: 32px; height: 32px;
+      background: var(--accent); color: #fff;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-weight: 600; font-size: 12px;
+      border-radius: 6px; flex-shrink: 0;
+    }
+    .logo-text { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
+    .logo-sub { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+
+    .sidebar-nav { flex: 1; padding: 12px 10px; }
+    .nav-label { font-size: 9px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 10px; margin: 16px 0 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 6px;
+      text-decoration: none; color: var(--text-muted);
+      font-size: 13px; font-weight: 500;
+      transition: all 0.15s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: var(--surface-2); color: var(--text); }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
+    .nav-item svg { flex-shrink: 0; opacity: 0.8; }
+    .nav-item.active svg { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 16px; border-top: 1px solid var(--border);
+    }
+    .sidebar-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    .topbar {
+      height: 56px; min-height: 56px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px;
+      background: var(--bg);
+    }
+    .topbar-title { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+    .topbar-meta { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+    .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+    /* KPI GRID */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      padding: 20px 18px;
+    }
+    .kpi-label { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 24px; font-weight: 600; font-family: var(--mono); letter-spacing: -0.03em; line-height: 1; }
+    .kpi-value.accent { color: var(--accent); }
+    .kpi-value.green { color: var(--green); }
+    .kpi-value.red { color: var(--red); }
+    .kpi-value.yellow { color: var(--yellow); }
+    .kpi-value.purple { color: var(--purple); }
+    .kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: var(--mono); }
+
+    /* CHARTS */
+    .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+    .charts-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .chart-header { margin-bottom: 16px; }
+    .chart-title { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+    .chart-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono); }
+    .chart-wrap { height: 200px; position: relative; }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      padding: 10px 16px; border-radius: 8px;
+      font-size: 12px; font-weight: 500; font-family: var(--mono);
+      background: var(--surface-2); color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      transform: translateY(20px); opacity: 0;
+      transition: all 0.25s; z-index: 9999;
+    }
+    .toast.toast-show { transform: translateY(0); opacity: 1; }
+    .toast-success { border-left: 3px solid var(--green); }
+    .toast-error { border-left: 3px solid var(--red); }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">ST</div>
+      <div>
+        <div class="logo-text">ShipTrack</div>
+        <div class="logo-sub">Pro Analytics</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-label">Menu</div>
+      <a href="index.html" class="nav-item active">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="crud.html" class="nav-item">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+        Data Management
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-tag">
+        <span class="dot"></span>
+        Live — Supabase
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <span class="topbar-title">Dashboard Overview</span>
+      <span class="topbar-meta" id="last-update">—</span>
+    </header>
+    <div class="content">
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Pengiriman</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-sub">records</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Tepat Waktu</div>
+          <div class="kpi-value green" id="kpi-ontime">—</div>
+          <div class="kpi-sub">on-time rate</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Terlambat</div>
+          <div class="kpi-value red" id="kpi-nottime">—</div>
+          <div class="kpi-sub">late deliveries</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Rating</div>
+          <div class="kpi-value yellow" id="kpi-rating">—</div>
+          <div class="kpi-sub">out of 5</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Biaya</div>
+          <div class="kpi-value accent" id="kpi-cost">—</div>
+          <div class="kpi-sub">per shipment</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Diskon</div>
+          <div class="kpi-value purple" id="kpi-discount">—</div>
+          <div class="kpi-sub">discount avg</div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 1 -->
+      <div class="charts-row">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Blok Gudang</div>
+            <div class="chart-subtitle">Distribusi per warehouse block</div>
+          </div>
+          <div class="chart-wrap"><canvas id="warehouseChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Mode Pengiriman</div>
+            <div class="chart-subtitle">Ship / Flight / Road</div>
+          </div>
+          <div class="chart-wrap"><canvas id="shipmentChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Status Ketepatan</div>
+            <div class="chart-subtitle">On-time vs Terlambat</div>
+          </div>
+          <div class="chart-wrap"><canvas id="ontimeChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW 2 -->
+      <div class="charts-row-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Distribusi Rating Pelanggan</div>
+            <div class="chart-subtitle">1 – 5 bintang</div>
+          </div>
+          <div class="chart-wrap"><canvas id="ratingChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Demografi Gender</div>
+            <div class="chart-subtitle">Pria vs Wanita</div>
+          </div>
+          <div class="chart-wrap"><canvas id="genderChart"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+Chart.defaults.color = '#666';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const T = '#e8e8e8', DIM = 'rgba(255,255,255,0.04)', BORDER = '#222';
+const PALETTE = ['#ff6b35','#3b82f6','#22c55e','#eab308','#a855f7','#ef4444'];
+
+function tooltipStyle() {
+  return {
+    backgroundColor: '#1a1a1a',
+    borderColor: '#333',
+    borderWidth: 1,
+    titleColor: '#ff6b35',
+    bodyColor: '#999',
+    padding: 10,
+    cornerRadius: 6,
+  };
+}
+
+function scaleStyle() {
+  return {
+    x: { ticks: { color: '#555' }, grid: { color: DIM, drawBorder: false } },
+    y: { ticks: { color: '#555' }, grid: { color: DIM, drawBorder: false } }
+  };
+}
+
+let charts = {};
+function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+async function init() {
+  try {
+    const raw = await fetchStats();
+    renderKPIs(raw);
+    renderWarehouse(raw);
+    renderShipment(raw);
+    renderOnTime(raw);
+    renderRating(raw);
+    renderGender(raw);
+    document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString('id-ID');
+  } catch (err) {
+    showToast('Gagal memuat: ' + err.message, 'error');
+  }
+}
+
+function renderKPIs(data) {
+  const total = data.length;
+  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length;
+  document.getElementById('kpi-total').textContent = total.toLocaleString();
+  document.getElementById('kpi-ontime').textContent = ((onTime/total)*100).toFixed(1) + '%';
+  document.getElementById('kpi-nottime').textContent = (total - onTime).toLocaleString();
+  document.getElementById('kpi-rating').textContent = (data.reduce((s,d)=>s+(d.Customer_rating||0),0)/total).toFixed(2);
+  document.getElementById('kpi-cost').textContent = '$' + Math.round(data.reduce((s,d)=>s+(d.Cost_of_the_Product||0),0)/total).toLocaleString();
+  document.getElementById('kpi-discount').textContent = (data.reduce((s,d)=>s+(d.Discount_offered||0),0)/total).toFixed(1) + '%';
+}
+
+function renderWarehouse(data) {
+  destroy('warehouseChart');
+  const blocks = ['A','B','C','D','F'];
+  charts['warehouseChart'] = new Chart(document.getElementById('warehouseChart'), {
+    type: 'bar',
+    data: {
+      labels: blocks.map(b => 'Blok ' + b),
+      datasets: [{ data: blocks.map(b => data.filter(d=>d.Warehouse_block===b).length), backgroundColor: PALETTE, borderRadius: 4, borderSkipped: false }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tooltipStyle() }, scales: scaleStyle() }
+  });
+}
+
+function renderShipment(data) {
+  destroy('shipmentChart');
+  const modes = ['Ship','Flight','Road'];
+  charts['shipmentChart'] = new Chart(document.getElementById('shipmentChart'), {
+    type: 'doughnut',
+    data: { labels: modes, datasets: [{ data: modes.map(m=>data.filter(d=>d.Mode_of_Shipment===m).length), backgroundColor: ['#3b82f6','#ff6b35','#22c55e'], borderColor: '#111', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } }, tooltip: tooltipStyle() } }
+  });
+}
+
+function renderOnTime(data) {
+  destroy('ontimeChart');
+  const on = data.filter(d=>d["Reached.on.Time_Y.N"]===1).length;
+  charts['ontimeChart'] = new Chart(document.getElementById('ontimeChart'), {
+    type: 'doughnut',
+    data: { labels: ['Tepat Waktu','Terlambat'], datasets: [{ data: [on, data.length-on], backgroundColor: ['#22c55e','#ef4444'], borderColor: '#111', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } }, tooltip: tooltipStyle() } }
+  });
+}
+
+function renderRating(data) {
+  destroy('ratingChart');
+  charts['ratingChart'] = new Chart(document.getElementById('ratingChart'), {
+    type: 'bar',
+    data: {
+      labels: ['★ 1','★★ 2','★★★ 3','★★★★ 4','★★★★★ 5'],
+      datasets: [{ label: 'Pelanggan', data: [1,2,3,4,5].map(r=>data.filter(d=>d.Customer_rating===r).length), backgroundColor: 'rgba(234,179,8,0.2)', borderColor: '#eab308', borderWidth: 1.5, borderRadius: 4 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tooltipStyle() }, scales: scaleStyle() }
+  });
+}
+
+function renderGender(data) {
+  destroy('genderChart');
+  const m = data.filter(d=>d.Gender==='M').length;
+  const f = data.filter(d=>d.Gender==='F').length;
+  charts['genderChart'] = new Chart(document.getElementById('genderChart'), {
+    type: 'pie',
+    data: { labels: ['Pria','Wanita'], datasets: [{ data: [m,f], backgroundColor: ['#3b82f6','#a855f7'], borderColor: '#111', borderWidth: 3 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } }, tooltip: tooltipStyle() } }
+  });
+}
+
+function showToast(msg, type='info') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add('toast-show'), 10);
+  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
