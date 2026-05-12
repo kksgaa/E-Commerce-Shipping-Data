@@ -34,52 +34,94 @@
     }
 
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
-
     .app { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── SIDEBAR OVERLAY (mobile) ─────────────── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 199;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(2px);
+    }
+    .sidebar-overlay.active { display: block; }
 
     /* SIDEBAR */
     .sidebar {
-      width: 220px; min-width: 220px;
+      width: 240px; min-width: 240px;
       background: var(--surface);
       border-right: 1px solid var(--border);
       display: flex; flex-direction: column;
+      overflow-y: auto; overflow-x: hidden;
+      flex-shrink: 0;
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+      z-index: 200;
     }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
     .sidebar-logo {
       display: flex; align-items: center; gap: 10px;
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
+      padding: 18px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
     }
     .logo-mark {
-      width: 32px; height: 32px;
-      background: var(--accent); color: #fff;
+      width: 34px; height: 34px; background: var(--accent); color: #fff;
       display: grid; place-items: center;
-      font-family: var(--mono); font-weight: 600; font-size: 12px;
-      border-radius: 6px; flex-shrink: 0;
+      font-family: var(--mono); font-weight: 600; font-size: 13px;
+      border-radius: 7px; flex-shrink: 0;
+      box-shadow: 0 0 18px rgba(255,107,53,0.28);
     }
     .logo-text { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
     .logo-sub { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
 
-    .sidebar-nav { flex: 1; padding: 12px 10px; }
-    .nav-label { font-size: 9px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 10px; margin: 16px 0 6px; }
+    /* sidebar close btn (mobile) */
+    .sidebar-close {
+      display: none;
+      margin-left: auto;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--text-muted); padding: 4px;
+      border-radius: 4px; transition: all 0.15s;
+    }
+    .sidebar-close:hover { color: var(--text); }
+
+    .sidebar-nav { padding: 10px 8px 4px; }
+    .nav-label { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 8px; margin: 12px 0 4px; }
     .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 10px; border-radius: 6px;
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 6px;
       text-decoration: none; color: var(--text-muted);
-      font-size: 13px; font-weight: 500;
-      transition: all 0.15s; margin-bottom: 2px;
+      font-size: 12.5px; font-weight: 500;
+      transition: all 0.15s; margin-bottom: 1px;
+      border: 1px solid transparent;
     }
     .nav-item:hover { background: var(--surface-2); color: var(--text); }
-    .nav-item.active { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-
-    .sidebar-footer {
-      padding: 16px; border-top: 1px solid var(--border);
-    }
+    .nav-item.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-border); }
+    .nav-badge { margin-left: auto; font-family: var(--mono); font-size: 9px; background: #1e1e1e; color: var(--text-muted); padding: 2px 6px; border-radius: 99px; border: 1px solid var(--border); }
+    .sb-block { margin: 0 8px 6px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .sb-block-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    .sb-block-title { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+    .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-row:hover { background: var(--surface-2); }
+    .stat-lbl { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .stat-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .stat-val { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
+    .activity-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 11px; border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-item:hover { background: var(--surface-2); }
+    .activity-icon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+    .activity-text { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+    .activity-text strong { color: var(--text); font-weight: 500; display: block; font-size: 11.5px; }
+    .info-rows { padding: 4px 0; }
+    .info-row { display: flex; justify-content: space-between; padding: 5px 11px; border-bottom: 1px solid var(--border-subtle); }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
+    .info-val { font-size: 10px; font-family: var(--mono); }
+    .sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
     .sidebar-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
     /* MAIN */
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
     .topbar {
       height: 56px; min-height: 56px;
@@ -88,14 +130,26 @@
       padding: 0 24px;
       background: var(--bg);
       flex-shrink: 0;
+      gap: 8px;
     }
     .topbar-left { display: flex; align-items: center; gap: 12px; }
-    .topbar-title { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+    .topbar-title { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; }
     .row-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+    /* hamburger button */
+    .hamburger {
+      display: none;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted); cursor: pointer;
+      padding: 6px 8px; border-radius: 6px;
+      align-items: center; gap: 4px;
+      transition: all 0.15s; flex-shrink: 0;
+    }
+    .hamburger:hover { border-color: var(--accent); color: var(--accent); }
 
     /* TOOLBAR */
     .toolbar {
-      padding: 14px 24px;
+      padding: 12px 24px;
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 8px;
       flex-wrap: wrap;
@@ -112,7 +166,7 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    .search-input { min-width: 160px; }
+    .search-input { min-width: 140px; flex: 1; max-width: 200px; }
     .search-input:focus, .filter-select:focus { border-color: var(--accent); }
     .search-input::placeholder { color: var(--text-dim); }
     option { background: var(--surface); }
@@ -131,8 +185,9 @@
     .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
 
     /* TABLE */
-    .table-wrap { flex: 1; overflow: auto; padding: 0 24px 24px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .table-container { position: relative; flex: 1; overflow: auto; }
+    .table-wrap { padding: 0 24px 24px; overflow-x: auto; min-width: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
     thead th {
       padding: 10px 12px;
       background: var(--surface);
@@ -149,10 +204,7 @@
       transition: background 0.1s;
     }
     tbody tr:hover { background: var(--surface); }
-    tbody td {
-      padding: 10px 12px; color: var(--text-muted);
-      white-space: nowrap;
-    }
+    tbody td { padding: 10px 12px; color: var(--text-muted); white-space: nowrap; }
     .num { text-align: right; font-family: var(--mono); }
     .empty-row { text-align: center; color: var(--text-dim); padding: 48px; font-family: var(--mono); }
 
@@ -171,7 +223,6 @@
     .imp-low { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
     .imp-medium { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid rgba(234,179,8,0.25); }
     .imp-high { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
-
     .status-badge {
       display: inline-flex; align-items: center;
       padding: 3px 8px; border-radius: 4px;
@@ -179,7 +230,6 @@
     }
     .status-on { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
     .status-late { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
-
     .id-badge { background: var(--surface-2); color: var(--text-dim); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px; }
 
     /* ACTION BUTTONS */
@@ -206,7 +256,6 @@
       animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .table-container { position: relative; flex: 1; overflow: auto; }
 
     /* PAGINATION */
     .pagination-bar {
@@ -214,8 +263,9 @@
       padding: 12px 24px;
       border-top: 1px solid var(--border);
       flex-shrink: 0;
+      flex-wrap: wrap; gap: 8px;
     }
-    #pagination { display: flex; align-items: center; gap: 4px; }
+    #pagination { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     #pagination button {
       background: var(--surface); border: 1px solid var(--border);
       color: var(--text-muted); padding: 5px 10px; border-radius: 5px;
@@ -229,26 +279,28 @@
 
     /* MODAL */
     .modal-overlay {
-      position: fixed; inset: 0; z-index: 100;
+      position: fixed; inset: 0; z-index: 300;
       background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
       display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      padding: 16px;
     }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal-content { transform: scale(0.97) translateY(8px); transition: transform 0.2s; }
+    .modal-content { transform: scale(0.97) translateY(8px); transition: transform 0.2s; width: 100%; max-width: 600px; }
     .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
 
     .modal-box {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      width: 100%; max-width: 600px; margin: 0 16px;
+      width: 100%;
       max-height: 90vh; overflow-y: auto;
     }
     .modal-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 20px 24px 16px;
       border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--surface); z-index: 1;
     }
     .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
     .modal-close {
@@ -286,6 +338,7 @@
       display: flex; justify-content: flex-end; gap: 8px;
       padding: 16px 24px;
       border-top: 1px solid var(--border);
+      position: sticky; bottom: 0; background: var(--surface);
     }
 
     /* CONFIRM */
@@ -293,7 +346,7 @@
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 12px;
-      width: 100%; max-width: 360px; margin: 0 16px;
+      width: 100%; max-width: 360px;
       padding: 28px 24px;
       text-align: center;
     }
@@ -318,6 +371,7 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.5);
       transform: translateY(20px); opacity: 0;
       transition: all 0.25s; z-index: 9999;
+      max-width: calc(100vw - 40px);
     }
     .toast.toast-show { transform: translateY(0); opacity: 1; }
     .toast-success { border-left: 3px solid var(--green); }
@@ -326,35 +380,149 @@
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+    /* ═══════════ RESPONSIVE BREAKPOINTS ═══════════ */
+
+    /* Mobile: ≤ 768px */
+    @media (max-width: 768px) {
+      /* Sidebar becomes overlay */
+      .sidebar {
+        position: fixed;
+        left: 0; top: 0; bottom: 0;
+        transform: translateX(-100%);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-close { display: flex; align-items: center; }
+
+      /* Hamburger visible */
+      .hamburger { display: flex; }
+
+      /* Topbar adjustments */
+      .topbar { padding: 0 14px; }
+      .row-count { display: none; }
+
+      /* Toolbar: stack on mobile */
+      .toolbar { padding: 10px 14px; gap: 6px; }
+      .search-input { max-width: none; flex: 1 1 calc(50% - 3px); min-width: 120px; }
+      .filter-select { flex: 1 1 calc(50% - 3px); min-width: 120px; }
+      .toolbar-gap { display: none; }
+
+      /* Table wrap */
+      .table-wrap { padding: 0 14px 16px; }
+
+      /* Pagination */
+      .pagination-bar { padding: 10px 14px; }
+
+      /* Form grid: 1 col on mobile */
+      .form-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: auto; }
+
+      /* Modal body padding */
+      .modal-body { padding: 16px; }
+      .modal-header { padding: 16px 16px 12px; }
+      .modal-footer { padding: 12px 16px; }
+
+      /* Toast */
+      .toast { bottom: 16px; right: 16px; left: 16px; }
+    }
+
+    /* Extra small: ≤ 420px */
+    @media (max-width: 420px) {
+      .toolbar { flex-direction: column; }
+      .search-input, .filter-select { flex: 1 1 100%; max-width: none; }
+      .topbar-title { font-size: 13px; }
+    }
   </style>
 </head>
 <body>
+
+<!-- Mobile sidebar overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
 <div class="app">
   <!-- SIDEBAR -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="logo-mark">ST</div>
       <div>
         <div class="logo-text">ShipTrack</div>
         <div class="logo-sub">Pro Analytics</div>
       </div>
+      <button class="sidebar-close" onclick="closeSidebar()" title="Tutup menu">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <nav class="sidebar-nav">
-      <div class="nav-label">Menu</div>
-      <a href="index.html" class="nav-item">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <div class="nav-label">Navigasi</div>
+      <a href="index.html" class="nav-item" onclick="closeSidebar()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
         Dashboard
       </a>
-      <a href="crud.html" class="nav-item active">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+      <a href="crud.html" class="nav-item active" onclick="closeSidebar()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
         Data Management
+        <span class="nav-badge" id="nav-badge-total">—</span>
       </a>
     </nav>
-    <div class="sidebar-footer">
-      <div class="sidebar-tag">
-        <span class="dot"></span>
-        Live — Supabase
+
+    <div class="sb-block">
+      <div class="sb-block-head"><span class="sb-block-title">Panduan CRUD</span></div>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">➕</div>
+        <div class="activity-text"><strong>Tambah Data</strong>Klik "Tambah Data" di topbar kanan</div>
       </div>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6">✏️</div>
+        <div class="activity-text"><strong>Edit Data</strong>Klik ikon pensil pada baris tabel</div>
+      </div>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:rgba(239,68,68,0.12);color:#ef4444">🗑️</div>
+        <div class="activity-text"><strong>Hapus Data</strong>Klik ikon tong sampah &amp; konfirmasi</div>
+      </div>
+      <div class="activity-item">
+        <div class="activity-icon" style="background:rgba(168,85,247,0.12);color:#a855f7">🔍</div>
+        <div class="activity-text"><strong>Filter &amp; Cari</strong>Gunakan toolbar di atas tabel</div>
+      </div>
+    </div>
+
+    <div class="sb-block">
+      <div class="sb-block-head"><span class="sb-block-title">Filter Tersedia</span></div>
+      <div class="info-rows">
+        <div class="info-row"><span class="info-key">Cari ID</span><span class="info-val" style="color:#3b82f6">text search</span></div>
+        <div class="info-row"><span class="info-key">Blok Gudang</span><span class="info-val" style="color:#ff6b35">A B C D F</span></div>
+        <div class="info-row"><span class="info-key">Mode Pengiriman</span><span class="info-val" style="color:#22c55e">3 jenis</span></div>
+        <div class="info-row"><span class="info-key">Kepentingan</span><span class="info-val" style="color:#eab308">low/med/high</span></div>
+        <div class="info-row"><span class="info-key">Status</span><span class="info-val" style="color:#666">0 / 1</span></div>
+      </div>
+    </div>
+
+    <div class="sb-block" style="margin-bottom:8px;">
+      <div class="sb-block-head">
+        <span class="sb-block-title">Koneksi</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#22c55e">● aktif</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl"><span class="stat-dot" style="background:#3b82f6"></span>Database</span>
+        <span class="stat-val" style="color:#666;font-size:10px">Supabase</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl"><span class="stat-dot" style="background:#ff6b35"></span>Tabel</span>
+        <span class="stat-val" style="color:#666;font-size:10px">Train</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl"><span class="stat-dot" style="background:#22c55e"></span>Per Halaman</span>
+        <span class="stat-val" style="color:#666;font-size:10px">15 baris</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-lbl"><span class="stat-dot" style="background:#eab308"></span>Total Data</span>
+        <span class="stat-val" style="color:#eab308;font-size:10px" id="sb-total-rows">—</span>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-tag"><span class="dot"></span>Live · Supabase</div>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#3a3a3a" id="sb-clock">—</span>
     </div>
   </aside>
 
@@ -362,6 +530,10 @@
   <div class="main">
     <header class="topbar">
       <div class="topbar-left">
+        <!-- hamburger (mobile) -->
+        <button class="hamburger" id="hamburger-btn" onclick="openSidebar()" title="Buka menu">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
         <span class="topbar-title">Data Management</span>
         <span class="row-count" id="row-count">—</span>
       </div>
@@ -406,7 +578,7 @@
         <div class="spinner"></div>
         <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Memuat data...</span>
       </div>
-      <div id="data-table-wrap" style="overflow-x:auto;">
+      <div class="table-wrap" id="data-table-wrap">
         <table>
           <thead>
             <tr>
@@ -520,7 +692,7 @@
 
 <!-- MODAL CONFIRM DELETE -->
 <div class="modal-overlay" id="confirm-overlay">
-  <div class="modal-content">
+  <div class="modal-content" style="max-width:360px;">
     <div class="confirm-box">
       <div class="confirm-icon">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
@@ -537,12 +709,33 @@
 
 <script src="config.js"></script>
 <script>
+// ── Sidebar Mobile ─────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeSidebar(); closeModal(); closeConfirm(); } });
+
+// ── State ─────────────────────────────────────────
 let currentPage = 1;
 const PAGE_SIZE = 15;
 let totalRows = 0;
 let activeFilters = {};
 let editingId = null;
 let pendingDeleteId = null;
+
+// ── Init ──────────────────────────────────────────
+function tickClock() {
+  const s = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el = document.getElementById('sb-clock'); if(el) el.textContent = s;
+}
+setInterval(tickClock, 1000); tickClock();
 
 document.addEventListener('DOMContentLoaded', () => {
   loadTable();
@@ -552,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindDelete();
 });
 
-
+// ── TABLE ─────────────────────────────────────────
 async function loadTable() {
   setLoading(true);
   try {
@@ -563,6 +756,8 @@ async function loadTable() {
     const start = (currentPage - 1) * PAGE_SIZE + 1;
     const end = Math.min(currentPage * PAGE_SIZE, totalRows);
     document.getElementById('row-count').textContent = `${totalRows.toLocaleString()} baris`;
+    const nb = document.getElementById('nav-badge-total'); if(nb) nb.textContent = totalRows.toLocaleString();
+    const sr = document.getElementById('sb-total-rows'); if(sr) sr.textContent = totalRows.toLocaleString();
     document.getElementById('page-info').textContent = totalRows > 0 ? `${start}–${end} dari ${totalRows.toLocaleString()}` : '0 hasil';
   } catch (err) {
     showToastCrud('Gagal memuat: ' + err.message, 'error');
@@ -603,6 +798,7 @@ function renderTable(data) {
   `).join('');
 }
 
+// ── PAGINATION ────────────────────────────────────
 function renderPagination() {
   const total = Math.ceil(totalRows / PAGE_SIZE);
   const pag = document.getElementById('pagination');
@@ -627,6 +823,7 @@ function goPage(p) {
   currentPage = p; loadTable();
 }
 
+// ── FILTERS ───────────────────────────────────────
 function bindFilters() {
   ['filter-warehouse','filter-shipment','filter-importance','filter-reached'].forEach(id =>
     document.getElementById(id)?.addEventListener('change', applyFilters)
@@ -650,11 +847,13 @@ function resetFilters() {
   activeFilters = {}; currentPage = 1; loadTable();
 }
 
+// ── MODAL ─────────────────────────────────────────
 function bindModal() {
   document.getElementById('btn-add').addEventListener('click', openAddModal);
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
   document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
+  document.getElementById('confirm-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfirm(); });
 }
 function openAddModal() {
   editingId = null;
@@ -688,6 +887,7 @@ function closeModal() {
   editingId = null;
 }
 
+// ── FORM ──────────────────────────────────────────
 function bindForm() {
   document.getElementById('entry-form').addEventListener('submit', async e => {
     e.preventDefault();
@@ -715,6 +915,7 @@ function bindForm() {
   });
 }
 
+// ── DELETE ────────────────────────────────────────
 function bindDelete() {
   document.getElementById('confirm-ok').addEventListener('click', async () => {
     if (!pendingDeleteId) return;
@@ -734,6 +935,7 @@ function closeConfirm() {
   document.getElementById('confirm-overlay').classList.remove('active');
 }
 
+// ── HELPERS ───────────────────────────────────────
 function setLoading(v) {
   document.getElementById('table-loading').style.display = v ? 'flex' : 'none';
   document.getElementById('data-table-wrap').style.opacity = v ? '0.4' : '1';
