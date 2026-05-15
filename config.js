@@ -1,6 +1,6 @@
 const ENV_CONFIG = {
-  SUPABASE_URL: "https://pmoxtefmekgjhrpkqbav.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_u_JIGmSW8OM0zxzVgYh3mA_M2gCLTxT",
+  SUPABASE_URL: "https://pmoxtefmekgjhrpkqbav.supabase.co",  // <-- Ganti ini
+  SUPABASE_ANON_KEY: "sb_publishable_u_JIGmSW8OM0zxzVgYh3mA_M2gCLTxT",              // <-- Ganti ini
 };
 
 const TABLE_NAME = "Train";
@@ -34,12 +34,41 @@ async function fetchAllData(filters = {}, page = 1, pageSize = 50) {
   return { data, count };
 }
 
+function normalizeRow(row) {
+  return {
+    ...row,
+    "Reached.on.Time_Y.N": Number(row["Reached.on.Time_Y.N"]),
+    "Customer_rating":      Number(row["Customer_rating"]),
+    "Customer_care_calls":  Number(row["Customer_care_calls"]),
+    "Cost_of_the_Product":  Number(row["Cost_of_the_Product"]),
+    "Prior_purchases":      Number(row["Prior_purchases"]),
+    "Discount_offered":     Number(row["Discount_offered"]),
+    "Weight_in_gms":        Number(row["Weight_in_gms"]),
+  };
+}
+
 async function fetchStats() {
-  const { data, error } = await supabaseClient
-    .from(TABLE_NAME)
-    .select("*");
-  if (error) throw error;
-  return data;
+  const BATCH = 1000;
+  let allData = [];
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from(TABLE_NAME)
+      .select("*")
+      .range(from, from + BATCH - 1)
+      .order("ID", { ascending: true });
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+
+    allData = allData.concat(data.map(normalizeRow));
+
+    if (data.length < BATCH) break;
+    from += BATCH;
+  }
+
+  return allData;
 }
 
 async function insertRow(row) {

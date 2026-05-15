@@ -1,10 +1,6 @@
-/* ============================================================
-   style.css  –  ShipTrack Pro – Industrial Dark Theme
-   ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
 
-/* ─── CSS VARIABLES ─────────────────────────────────────────── */
 :root {
   --bg-base:      #080d14;
   --bg-surface:   #0d1520;

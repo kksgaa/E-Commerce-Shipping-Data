@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShipTrack — Dashboard</title>
+  <title>ShipTrack — Logistics Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,7 +11,7 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0a0a0a; --surface: #111; --surface-2: #181818; --surface-3: #1e1e1e;
+       --bg: #0a0a0a; --surface: #111; --surface-2: #181818; --surface-3: #1e1e1e;
       --border: #222; --border-s: #1a1a1a;
       --text: #e8e8e8; --text-muted: #666; --text-dim: #3a3a3a;
       --accent: #ff6b35; --accent-dim: rgba(255,107,53,0.10); --accent-b: rgba(255,107,53,0.22);
@@ -38,7 +38,7 @@
     .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
 
     .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 18px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-    .logo-mark { width: 34px; height: 34px; background: var(--accent); color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 13px; border-radius: 7px; flex-shrink: 0; box-shadow: 0 0 18px rgba(255,107,53,0.28); }
+    .logo-mark { width: 34px; height: 34px; background: var(--accent); color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 13px; border-radius: 7px; flex-shrink: 0; box-shadow: 0 0 18px rgba(59,130,246,0.28); }
     .logo-text { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
     .logo-sub  { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
     .sidebar-close { display: none; margin-left: auto; background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; transition: all 0.15s; }
@@ -62,10 +62,7 @@
     .stat-val { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
 
     .sb-progress { padding: 11px; }
-    .progress-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
-    .progress-lbl { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-    .progress-pct { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--green); }
-    .progress-bar { height: 4px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
+    .progress-bar { height: 4px; background: var(--surface-3); border-radius: 99px; overflow: hidden; margin-top: 6px; }
     .progress-fill { height: 100%; background: var(--green); border-radius: 99px; transition: width 0.9s cubic-bezier(.4,0,.2,1); width: 0%; }
     .progress-sub { font-size: 9.5px; color: var(--text-muted); margin-top: 6px; font-family: var(--mono); line-height: 1.5; }
 
@@ -76,21 +73,7 @@
     .mode-bar { height: 3px; background: var(--surface-3); border-radius: 99px; }
     .mode-fill { height: 100%; border-radius: 99px; transition: width 0.9s cubic-bezier(.4,0,.2,1); }
 
-    .activity-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 11px; border-bottom: 1px solid var(--border-s); transition: background 0.1s; }
-    .activity-item:last-child { border-bottom: none; }
-    .activity-item:hover { background: var(--surface-2); }
-    .activity-icon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
-    .activity-text { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
-    .activity-text strong { color: var(--text); font-weight: 500; display: block; font-size: 11.5px; }
-    .activity-time { font-family: var(--mono); font-size: 9px; color: var(--text-dim); margin-top: 3px; }
-
-    .info-rows { padding: 4px 0; }
-    .info-row { display: flex; justify-content: space-between; padding: 5px 11px; border-bottom: 1px solid var(--border-s); }
-    .info-row:last-child { border-bottom: none; }
-    .info-key { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-    .info-val { font-size: 10px; font-family: var(--mono); }
-
-    .sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; margin-top: auto; }
     .sidebar-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
     @keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
@@ -114,25 +97,25 @@
 
     .content { flex: 1; overflow-y: auto; padding: 20px 24px 24px; }
 
-    /* ── KPI GRID ────────────────────────────────── */
-    .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+    /* ── KPI GRID (Diubah menjadi 4 kolom) ────────────────────────────────── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
     .kpi-card { background: var(--surface); padding: 16px; }
     .kpi-lbl { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
     .kpi-val { font-size: 22px; font-weight: 600; font-family: var(--mono); letter-spacing: -0.03em; line-height: 1; }
-    .kpi-val.green { color: var(--green); } .kpi-val.red { color: var(--red); } .kpi-val.yellow { color: var(--yellow); } .kpi-val.accent { color: var(--accent); } .kpi-val.purple { color: var(--purple); }
+    .kpi-val.green { color: var(--green); } .kpi-val.red { color: var(--red); } .kpi-val.yellow { color: var(--yellow); } .kpi-val.accent { color: var(--accent); }
     .kpi-sub { font-size: 10px; color: var(--text-muted); margin-top: 5px; font-family: var(--mono); }
 
     /* ── CHART ROWS ───────────────────────────────── */
     .charts-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
-    .charts-row-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .charts-row-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px; }
     .charts-row-1 { display: grid; grid-template-columns: 1fr; gap: 14px; margin-bottom: 14px; }
     .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px; }
     .chart-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
     .chart-title { font-size: 12px; font-weight: 600; color: var(--text); }
     .chart-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: var(--mono); }
     .chart-tag { font-family: var(--mono); font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 99px; background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); white-space: nowrap; }
-    .chart-wrap { height: 190px; position: relative; }
-    .section-title { margin-top: 24px; font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .chart-wrap { height: 200px; position: relative; }
+    .section-title { margin-top: 24px; font-weight: 600; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
     .toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; font-family: var(--mono); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.5); transform: translateY(20px); opacity: 0; transition: all 0.25s; z-index: 9999; }
     .toast.toast-show { transform: translateY(0); opacity: 1; }
@@ -144,9 +127,9 @@
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
     @media (max-width: 1024px) {
-      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
       .charts-row { grid-template-columns: repeat(2, 1fr); }
-      .charts-row-2 { grid-template-columns: 1fr 1fr; }
+      .charts-row-2 { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
       .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); box-shadow: 4px 0 24px rgba(0,0,0,0.5); }
@@ -154,12 +137,7 @@
       .sidebar-close, .hamburger { display: flex; }
       .topbar { padding: 0 14px; } .topbar-time { display: none; }
       .content { padding: 14px 14px 20px; }
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); } .kpi-val { font-size: 18px; }
-      .charts-row, .charts-row-2 { grid-template-columns: 1fr; } .chart-wrap { height: 200px; }
-    }
-    @media (max-width: 420px) {
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); } .kpi-card { padding: 12px; } .kpi-val { font-size: 16px; }
-      .topbar-btn span { display: none; }
+      .charts-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -173,7 +151,7 @@
       <div class="logo-mark">ST</div>
       <div>
         <div class="logo-text">ShipTrack</div>
-        <div class="logo-sub">Pro Analytics</div>
+        <div class="logo-sub">Logistics Analytics</div>
       </div>
       <button class="sidebar-close" onclick="closeSidebar()" title="Tutup menu">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -181,10 +159,10 @@
     </div>
 
     <nav class="sidebar-nav">
-      <div class="nav-section-label">Navigasi</div>
+      <div class="nav-section-label">Navigasi Utama</div>
       <a href="index.html" class="nav-item active" onclick="closeSidebar()">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
+        Logistics Dashboard
       </a>
       <a href="crud.html" class="nav-item" onclick="closeSidebar()">
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
@@ -193,44 +171,34 @@
       </a>
     </nav>
 
-    <div class="sb-block">
-      <div class="sb-block-head"><span class="sb-block-title">Quick Stats</span></div>
-      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--green)"></span>Tepat Waktu</span><span class="stat-val" style="color:var(--green)" id="sb-ontime">—</span></div>
-      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--red)"></span>Terlambat</span><span class="stat-val" style="color:var(--red)" id="sb-late">—</span></div>
-      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--yellow)"></span>Avg Rating</span><span class="stat-val" style="color:var(--yellow)" id="sb-rating">—</span></div>
-      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--accent)"></span>Avg Biaya</span><span class="stat-val" style="color:var(--accent)" id="sb-cost">—</span></div>
-      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--purple)"></span>Avg Diskon</span><span class="stat-val" style="color:var(--purple)" id="sb-discount">—</span></div>
-    </div>
-
-    <div class="sb-block">
-      <div class="sb-block-head"><span class="sb-block-title">On-Time Rate</span><span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green)" id="sb-pct">—</span></div>
+    <div class="sb-block" style="margin-top: 10px;">
+      <div class="sb-block-head"><span class="sb-block-title">Kinerja Ketepatan</span></div>
       <div class="sb-progress">
+        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+          <span style="font-size:10px; color:var(--text-muted);">Tepat Waktu</span>
+          <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--green)" id="sb-pct">—</span>
+        </div>
         <div class="progress-bar"><div class="progress-fill" id="sb-fill"></div></div>
         <div class="progress-sub" id="sb-progress-sub">memuat data...</div>
       </div>
+      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--green)"></span>Total Tepat</span><span class="stat-val" style="color:var(--green)" id="sb-ontime">—</span></div>
+      <div class="stat-row"><span class="stat-lbl"><span class="stat-dot" style="background:var(--red)"></span>Total Terlambat</span><span class="stat-val" style="color:var(--red)" id="sb-late">—</span></div>
     </div>
 
     <div class="sb-block">
-      <div class="sb-block-head"><span class="sb-block-title">Mode Pengiriman</span></div>
+      <div class="sb-block-head"><span class="sb-block-title">Kapasitas Moda</span></div>
       <div class="mode-list">
         <div class="mode-top"><span class="mode-name">🚢 Ship</span><span class="mode-pct" id="pct-ship">—</span></div>
-        <div class="mode-bar"><div class="mode-fill" id="fill-ship" style="background:var(--blue);width:0%"></div></div>
+        <div class="mode-bar"><div class="mode-fill" id="fill-ship" style="background:var(--red);width:0%"></div></div>
         <div class="mode-top" style="margin-top:6px;"><span class="mode-name">✈️ Flight</span><span class="mode-pct" id="pct-flight">—</span></div>
-        <div class="mode-bar"><div class="mode-fill" id="fill-flight" style="background:var(--accent);width:0%"></div></div>
+        <div class="mode-bar"><div class="mode-fill" id="fill-flight" style="background:var(--yellow); width:0%"></div></div>        
         <div class="mode-top" style="margin-top:6px;"><span class="mode-name">🚛 Road</span><span class="mode-pct" id="pct-road">—</span></div>
         <div class="mode-bar"><div class="mode-fill" id="fill-road" style="background:var(--green);width:0%"></div></div>
       </div>
     </div>
 
-    <div class="sb-block" style="margin-bottom:8px;">
-      <div class="sb-block-head"><span class="sb-block-title">Demografi</span><span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)">Pria / Wanita</span></div>
-      <div class="info-rows" style="padding: 10px 11px;">
-        <span id="sb-gender" style="font-size:11px;color:var(--text-muted)">memuat...</span>
-      </div>
-    </div>
-
     <div class="sidebar-footer">
-      <div class="sidebar-tag"><span class="dot"></span>Live · Supabase</div>
+      <div class="sidebar-tag"><span class="dot"></span>Live Analytics</div>
       <span style="font-family:var(--mono);font-size:9px;color:var(--text-dim)" id="sb-clock">—</span>
     </div>
   </aside>
@@ -241,7 +209,7 @@
         <button class="hamburger" id="hamburger-btn" onclick="openSidebar()" title="Buka menu">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <span class="topbar-title">Dashboard Overview</span>
+        <span class="topbar-title">Supply Chain Overview</span>
       </div>
       <div class="topbar-right">
         <span class="topbar-time" id="topbar-clock">—</span>
@@ -268,73 +236,63 @@
         <option value="Ship">Ship</option>
         <option value="Road">Road</option>
       </select>
-      <select id="slicer-rating" onchange="applySlicers()">
-        <option value="">Semua Rating</option>
-        <option value="1">1 Bintang</option><option value="2">2 Bintang</option>
-        <option value="3">3 Bintang</option><option value="4">4 Bintang</option><option value="5">5 Bintang</option>
+      <select id="slicer-importance" onchange="applySlicers()">
+        <option value="">Semua Tingkat Kepentingan</option>
+        <option value="low">Low Priority</option>
+        <option value="medium">Medium Priority</option>
+        <option value="high">High Priority</option>
       </select>
     </div>
 
     <div class="content">
       <div class="kpi-grid">
-        <div class="kpi-card"><div class="kpi-lbl">Total Pengiriman</div><div class="kpi-val" id="kpi-total">—</div><div class="kpi-sub">records</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Tepat Waktu</div><div class="kpi-val green" id="kpi-ontime">—</div><div class="kpi-sub">on-time rate</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Terlambat</div><div class="kpi-val red" id="kpi-nottime">—</div><div class="kpi-sub">late deliveries</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Avg Rating</div><div class="kpi-val yellow" id="kpi-rating">—</div><div class="kpi-sub">out of 5</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Avg Biaya</div><div class="kpi-val accent" id="kpi-cost">—</div><div class="kpi-sub">per shipment</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Avg Diskon</div><div class="kpi-val purple" id="kpi-discount">—</div><div class="kpi-sub">discount avg</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Total Volume</div><div class="kpi-val accent" id="kpi-total">—</div><div class="kpi-sub">total pengiriman</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">On-Time Performance</div><div class="kpi-val green" id="kpi-ontime">—</div><div class="kpi-sub">tepat waktu</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Keterlambatan (Late)</div><div class="kpi-val red" id="kpi-nottime">—</div><div class="kpi-sub">gagal estimasi</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Rata-rata Rating</div><div class="kpi-val yellow" id="kpi-rating">—</div><div class="kpi-sub">kepuasan layanan (1-5)</div></div>
       </div>
 
+      <div class="section-title">🏢 Kinerja Operasional & Rute</div>
       <div class="charts-row">
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Blok Gudang</div><div class="chart-sub">Distribusi per warehouse</div></div><span class="chart-tag">BAR</span></div>
-          <div class="chart-wrap"><canvas id="warehouseChart"></canvas></div>
+          <div class="chart-head"><div><div class="chart-title">Status Ketepatan</div><div class="chart-sub">On-Time vs Terlambat</div></div><span class="chart-tag">DOUGHNUT</span></div>
+          <div class="chart-wrap"><canvas id="ontimeChart"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Mode Pengiriman</div><div class="chart-sub">Ship / Flight / Road</div></div><span class="chart-tag">DOUGHNUT</span></div>
+          <div class="chart-head"><div><div class="chart-title">Mode Pengiriman</div><div class="chart-sub">Beban Transportasi</div></div><span class="chart-tag">DOUGHNUT</span></div>
           <div class="chart-wrap"><canvas id="shipmentChart"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Status Ketepatan</div><div class="chart-sub">On-time vs Terlambat</div></div><span class="chart-tag">DOUGHNUT</span></div>
-          <div class="chart-wrap"><canvas id="ontimeChart"></canvas></div>
+          <div class="chart-head"><div><div class="chart-title">Beban Gudang (Warehouse)</div><div class="chart-sub">Distribusi per Blok</div></div><span class="chart-tag">BAR</span></div>
+          <div class="chart-wrap"><canvas id="warehouseChart"></canvas></div>
         </div>
       </div>
 
+      <div class="section-title">📦 Analisis Pelanggan & Produk</div>
       <div class="charts-row-2">
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Distribusi Rating Pelanggan</div><div class="chart-sub">1 – 5 bintang</div></div><span class="chart-tag">BAR</span></div>
+          <div class="chart-head"><div><div class="chart-title">Customer Impact (Rating)</div><div class="chart-sub">Tingkat Kepuasan Pelanggan</div></div><span class="chart-tag">BAR</span></div>
           <div class="chart-wrap"><canvas id="ratingChart"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Demografi Gender</div><div class="chart-sub">Pria vs Wanita</div></div><span class="chart-tag">PIE</span></div>
-          <div class="chart-wrap"><canvas id="genderChart"></canvas></div>
-        </div>
-      </div>
-
-      <div class="charts-row-1">
-        <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Product Importance</div><div class="chart-sub">Tingkat kepentingan produk</div></div><span class="chart-tag">BAR</span></div>
+          <div class="chart-head"><div><div class="chart-title">Karakteristik Produk (Priority)</div><div class="chart-sub">Tingkat Kepentingan Barang</div></div><span class="chart-tag">BAR</span></div>
           <div class="chart-wrap"><canvas id="importanceChart"></canvas></div>
         </div>
       </div>
 
-      <div class="section-title">📊 Korelasi Keterlambatan (Nilai Rata-rata)</div>
-      <div class="charts-row">
+      <div class="section-title">⚠️ Faktor Penentu Keterlambatan (Korelasi Rata-rata)</div>
+      <div class="charts-row-2">
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Panggilan CS vs Status</div></div><span class="chart-tag">BAR</span></div>
+          <div class="chart-head"><div><div class="chart-title">Komplain Panggilan CS vs Status</div><div class="chart-sub">Apakah keterlambatan memicu komplain?</div></div><span class="chart-tag">BAR</span></div>
           <div class="chart-wrap"><canvas id="corrCallsChart"></canvas></div>
         </div>
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Berat (g) vs Status</div></div><span class="chart-tag">BAR</span></div>
+          <div class="chart-head"><div><div class="chart-title">Berat Barang (Gram) vs Status</div><div class="chart-sub">Apakah barang berat lebih sering telat?</div></div><span class="chart-tag">BAR</span></div>
           <div class="chart-wrap"><canvas id="corrWeightChart"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Diskon (%) vs Status</div></div><span class="chart-tag">BAR</span></div>
-          <div class="chart-wrap"><canvas id="corrDiscountChart"></canvas></div>
         </div>
       </div>
 
-      <div class="section-title">📈 Tren Keterlambatan Waktu (6 Bulan Terakhir)</div>
+      <div class="section-title">📈 Tren Keterlambatan Waktu (Berdasarkan Data)</div>
       <div class="charts-row-1" style="margin-bottom:30px;">
         <div class="chart-card">
           <div class="chart-wrap" style="height: 250px;"><canvas id="trendChart"></canvas></div>
@@ -347,7 +305,6 @@
 
 <script src="config.js"></script>
 <script>
-// ── UI Sidebar & Clock ──────────────────────────────────────────
 function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); document.body.style.overflow = 'hidden'; }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); document.body.style.overflow = ''; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
@@ -365,26 +322,23 @@ function showToast(msg, type='info') {
   setTimeout(()=>{ t.classList.remove('toast-show'); setTimeout(()=>t.remove(),300); },3500);
 }
 
-// ── Variables & Chart Init ──────────────────────────────────────
-Chart.defaults.color = '#555';
+Chart.defaults.color = '#888';
 Chart.defaults.font.family = "'IBM Plex Mono', monospace";
 Chart.defaults.font.size = 11;
-const PALETTE = ['#ff6b35','#3b82f6','#22c55e','#eab308','#a855f7','#ef4444'];
+const PALETTE = ['#3b82f6','#f97316','#eab308','#22c55e','#a855f7','#ef4444'];
 const DIM = 'rgba(255,255,255,0.035)';
 let charts = {};
 let rawData = [];
 let filteredData = [];
 
 function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-function tip() { return { backgroundColor:'#1a1a1a',borderColor:'#2a2a2a',borderWidth:1,titleColor:'#ff6b35',bodyColor:'#888',padding:10,cornerRadius:6 }; }
-function sca() { return { x:{ticks:{color:'#444'},grid:{color:DIM,drawBorder:false}}, y:{ticks:{color:'#444'},grid:{color:DIM,drawBorder:false}} }; }
+function tip() { return { backgroundColor:'#1a1a1a',borderColor:'#2a2a2a',borderWidth:1,titleColor:'#3b82f6',bodyColor:'#ddd',padding:10,cornerRadius:6 }; }
+function sca() { return { x:{ticks:{color:'#666'},grid:{color:DIM,drawBorder:false}}, y:{ticks:{color:'#666'},grid:{color:DIM,drawBorder:false}} }; }
 
-// ── Data Loading & Slicers ──────────────────────────────────────
 async function init() {
   try {
-    rawData = await fetchStats(); // Mengambil data dari supabase via config.js
+    rawData = await fetchStats(); 
     
-    // Generate dummy date untuk Tren Waktu (180 hari terakhir)
     const today = new Date();
     rawData.forEach(d => {
       const randomPastDays = Math.floor(Math.random() * 180);
@@ -401,164 +355,264 @@ async function init() {
 function applySlicers() {
   const w = document.getElementById('slicer-warehouse').value;
   const s = document.getElementById('slicer-shipment').value;
-  const r = document.getElementById('slicer-rating').value;
+  const i = document.getElementById('slicer-importance').value;
 
   filteredData = rawData.filter(d => {
     if (w && d.Warehouse_block !== w) return false;
     if (s && d.Mode_of_Shipment !== s) return false;
-    if (r && d.Customer_rating !== parseInt(r)) return false;
+    if (i && d.Product_importance !== i) return false;
     return true;
   });
 
-  if (filteredData.length === 0) {
-    showToast('Tidak ada data yang cocok dengan filter', 'error');
-  }
+  if (filteredData.length === 0) showToast('Tidak ada data yang cocok dengan filter', 'error');
 
-  // Render ulang UI
   renderKPIs(filteredData);
   renderSidebar(filteredData);
   
-  // Render ulang semua chart
-  renderWarehouse(filteredData); 
-  renderShipment(filteredData); 
   renderOnTime(filteredData);
+  renderShipment(filteredData); 
+  renderWarehouse(filteredData); 
+  
   renderRating(filteredData); 
-  renderGender(filteredData);
   renderImportance(filteredData);
   renderCorrelation(filteredData);
   renderTrend(filteredData);
 }
 
-// ── Export Feature ──────────────────────────────────────────────
 function exportData() {
-  if (!filteredData || !filteredData.length) {
-    return showToast("Tidak ada data untuk diexport", "error");
-  }
+  if (!filteredData || !filteredData.length) return showToast("Tidak ada data untuk diexport", "error");
   const headers = Object.keys(filteredData[0]).filter(h => !h.startsWith('dummy_'));
   let csv = headers.join(",") + "\n";
-  filteredData.forEach(row => {
-    csv += headers.map(h => `"${row[h] !== null ? row[h] : ''}"`).join(",") + "\n";
-  });
+  filteredData.forEach(row => { csv += headers.map(h => `"${row[h] !== null ? row[h] : ''}"`).join(",") + "\n"; });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'ShipTrack_Filtered_Report.csv';
-  a.click(); URL.revokeObjectURL(url);
+  a.href = url; a.download = 'Logistics_Filtered_Report.csv'; a.click(); URL.revokeObjectURL(url);
   showToast("Laporan berhasil diunduh ✓", "success");
 }
 
-// ── Rendering Functions ─────────────────────────────────────────
 function renderKPIs(data) {
-  const n = data.length || 1; // cegah bagi nol
-  const on = data.filter(d=>d["Reached.on.Time_Y.N"]===1).length;
+  const n = data.length || 1; 
+  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length;
+  
   document.getElementById('kpi-total').textContent = data.length.toLocaleString();
-  document.getElementById('kpi-ontime').textContent = data.length ? ((on/n)*100).toFixed(1)+'%' : '0%';
-  document.getElementById('kpi-nottime').textContent = data.length ? (data.length-on).toLocaleString() : '0';
+  document.getElementById('kpi-ontime').textContent = data.length ? ((onTime/n)*100).toFixed(1)+'%' : '0%';
+  document.getElementById('kpi-nottime').textContent = data.length ? (data.length-onTime).toLocaleString() : '0';
   document.getElementById('kpi-rating').textContent = data.length ? (data.reduce((s,d)=>s+(d.Customer_rating||0),0)/n).toFixed(2) : '0';
-  document.getElementById('kpi-cost').textContent = data.length ? '$'+Math.round(data.reduce((s,d)=>s+(d.Cost_of_the_Product||0),0)/n).toLocaleString() : '$0';
-  document.getElementById('kpi-discount').textContent = data.length ? (data.reduce((s,d)=>s+(d.Discount_offered||0),0)/n).toFixed(1)+'%' : '0%';
 }
 
 function renderSidebar(data) {
   const n = data.length || 1;
-  const on = data.filter(d=>d["Reached.on.Time_Y.N"]===1).length;
-  const pct = data.length ? ((on/n)*100) : 0;
-  document.getElementById('sb-ontime').textContent = on.toLocaleString();
-  document.getElementById('sb-late').textContent = data.length ? (data.length-on).toLocaleString() : '0';
-  document.getElementById('sb-rating').textContent = data.length ? (data.reduce((s,d)=>s+(d.Customer_rating||0),0)/n).toFixed(2)+' ★' : '-';
-  document.getElementById('sb-cost').textContent = data.length ? '$'+Math.round(data.reduce((s,d)=>s+(d.Cost_of_the_Product||0),0)/n).toLocaleString() : '-';
-  document.getElementById('sb-discount').textContent = data.length ? (data.reduce((s,d)=>s+(d.Discount_offered||0),0)/n).toFixed(1)+'%' : '-';
+  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length;
+  const pct = data.length ? ((onTime/n)*100) : 0;
+  
+  document.getElementById('sb-ontime').textContent = onTime.toLocaleString();
+  document.getElementById('sb-late').textContent = data.length ? (data.length-onTime).toLocaleString() : '0';
   document.getElementById('sb-pct').textContent = pct.toFixed(1)+'%';
-  document.getElementById('sb-progress-sub').textContent = on.toLocaleString()+' tepat dari '+data.length.toLocaleString()+' total';
+  document.getElementById('sb-progress-sub').textContent = onTime.toLocaleString()+' tepat waktu dari '+data.length.toLocaleString()+' total';
   setTimeout(()=>{ document.getElementById('sb-fill').style.width = pct+'%'; }, 200);
 
   const modes = {Ship:0,Flight:0,Road:0};
-  data.forEach(d=>{ if(modes[d.Mode_of_Shipment]!==undefined) modes[d.Mode_of_Shipment]++; });
-  ['ship','flight','road'].forEach(m=>{
+  data.forEach(d => { if(modes[d.Mode_of_Shipment]!==undefined) modes[d.Mode_of_Shipment]++; });
+  ['ship','flight','road'].forEach(m => {
     const key = m.charAt(0).toUpperCase()+m.slice(1);
     const p = data.length ? (modes[key]/n*100).toFixed(1) : 0;
     document.getElementById('pct-'+m).textContent = p+'%';
     setTimeout(()=>{ document.getElementById('fill-'+m).style.width = p+'%'; }, 300);
   });
 
-  const m = data.filter(d=>d.Gender==='M').length;
-  document.getElementById('sb-gender').textContent = data.length ? ((m/n)*100).toFixed(0)+'% Pria, '+((1-m/n)*100).toFixed(0)+'% Wanita' : '0% Pria, 0% Wanita';
   document.getElementById('nav-badge-total').textContent = data.length.toLocaleString();
 }
 
-function renderWarehouse(data) {
-  destroy('warehouseChart');
-  const blocks = ['A','B','C','D','F'];
-  charts['warehouseChart'] = new Chart(document.getElementById('warehouseChart'), {
-    type:'bar', data:{ labels:blocks.map(b=>'Blok '+b), datasets:[{ data:blocks.map(b=>data.filter(d=>d.Warehouse_block===b).length), backgroundColor:PALETTE, borderRadius:5 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:tip()}, scales:sca() }
+function renderOnTime(data) {
+  destroy('ontimeChart');
+  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length;
+  charts['ontimeChart'] = new Chart(document.getElementById('ontimeChart'), {
+    type:'doughnut', data:{ labels:['Tepat Waktu','Terlambat'], datasets:[{ data:[onTime, data.length-onTime], backgroundColor:['#22c55e','#ef4444'], borderColor:'#111', borderWidth:3, hoverOffset:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:10}},tooltip:tip()} }
   });
 }
 
 function renderShipment(data) {
   destroy('shipmentChart');
-  const modes = ['Ship','Flight','Road'];
+  const modes = ['Ship', 'Flight', 'Road'];
+  
+  const counts = modes.map(m => data.filter(d => d.Mode_of_Shipment === m).length);
+  
+  const ranked = counts.map((val, index) => ({ val, index }))
+                       .sort((a, b) => b.val - a.val); 
+
+  const bgColors = [];
+  ranked.forEach((item, rank) => {
+    if (rank === 0) {
+      bgColors[item.index] = '#ef4444'; 
+    } else if (rank === 1) {
+      bgColors[item.index] = '#eab308'; 
+    } else {
+      bgColors[item.index] = '#22c55e'; 
+    }
+  });
+
   charts['shipmentChart'] = new Chart(document.getElementById('shipmentChart'), {
-    type:'doughnut', data:{ labels:modes, datasets:[{ data:modes.map(m=>data.filter(d=>d.Mode_of_Shipment===m).length), backgroundColor:['#3b82f6','#ff6b35','#22c55e'], borderColor:'#111', borderWidth:3, hoverOffset:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:10}},tooltip:tip()} }
+    type: 'doughnut',
+    data: {
+      labels: modes,
+      datasets: [{
+        data: counts,
+        backgroundColor: bgColors,
+        borderColor: '#111',
+        borderWidth: 3,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } },
+        tooltip: tip()
+      }
+    }
   });
 }
 
-function renderOnTime(data) {
-  destroy('ontimeChart');
-  const on = data.filter(d=>d["Reached.on.Time_Y.N"]===1).length;
-  charts['ontimeChart'] = new Chart(document.getElementById('ontimeChart'), {
-    type:'doughnut', data:{ labels:['Tepat Waktu','Terlambat'], datasets:[{ data:[on,data.length-on], backgroundColor:['#22c55e','#ef4444'], borderColor:'#111', borderWidth:3, hoverOffset:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'68%', plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:10}},tooltip:tip()} }
+function renderWarehouse(data) {
+  destroy('warehouseChart');
+  const blocks = ['A','B','C','D','F'];
+  
+  const counts = blocks.map(b => data.filter(d => d.Warehouse_block === b).length);
+  
+  const ranked = counts.map((val, index) => ({ val, index }))
+                       .sort((a, b) => b.val - a.val); 
+
+  const bgColors = [];
+  ranked.forEach((item, rank) => {
+    if (rank === 0) {
+      bgColors[item.index] = '#ef4444'; 
+    } else if (rank === 1 || rank === 2) {
+      bgColors[item.index] = '#eab308'; 
+    } else {
+      bgColors[item.index] = '#22c55e'; 
+    }
+  });
+
+  charts['warehouseChart'] = new Chart(document.getElementById('warehouseChart'), {
+    type: 'bar', 
+    data: { 
+      labels: blocks.map(b => 'Blok ' + b), 
+      datasets: [{ 
+        label: 'Beban Paket', 
+        data: counts, 
+        backgroundColor: bgColors, 
+        borderRadius: 4 
+      }] 
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      plugins: { legend: { display: false }, tooltip: tip() }, 
+      scales: sca() 
+    }
   });
 }
 
 function renderRating(data) {
   destroy('ratingChart');
-  charts['ratingChart'] = new Chart(document.getElementById('ratingChart'), {
-    type:'bar', data:{ labels:['★ 1','★★ 2','★★★ 3','★★★★ 4','★★★★★ 5'], datasets:[{ label:'Pelanggan', data:[1,2,3,4,5].map(r=>data.filter(d=>d.Customer_rating===r).length), backgroundColor:'rgba(234,179,8,0.18)', borderColor:'#eab308', borderWidth:1.5, borderRadius:4 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:tip()}, scales:sca() }
-  });
-}
+  
+  const counts = [1,2,3,4,5].map(r => data.filter(d => d.Customer_rating === r).length);
+  
+  const ranked = counts.map((val, index) => ({ val, index }))
+                       .sort((a, b) => b.val - a.val); 
 
-function renderGender(data) {
-  destroy('genderChart');
-  const m=data.filter(d=>d.Gender==='M').length, f=data.filter(d=>d.Gender==='F').length;
-  charts['genderChart'] = new Chart(document.getElementById('genderChart'), {
-    type:'pie', data:{ labels:['Pria','Wanita'], datasets:[{ data:[m,f], backgroundColor:['#3b82f6','#a855f7'], borderColor:'#111', borderWidth:3 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:10}},tooltip:tip()} }
+  const bgColors = [];
+
+  ranked.forEach((item, rank) => {
+    if (rank === 0) {
+      bgColors[item.index] = '#ef4444'; 
+    } else if (rank === 1 || rank === 2) {
+      bgColors[item.index] = '#eab308'; 
+    } else {
+      bgColors[item.index] = '#22c55e'; 
+    }
+  });
+
+  charts['ratingChart'] = new Chart(document.getElementById('ratingChart'), {
+    type: 'bar', 
+    data: { 
+      labels: ['★ 1','★★ 2','★★★ 3','★★★★ 4','★★★★★ 5'], 
+      datasets: [{ 
+        label: 'Jumlah Pelanggan', 
+        data: counts, 
+        backgroundColor: bgColors, 
+        borderRadius: 4 
+      }] 
+    },
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      plugins: { legend: { display: false }, tooltip: tip() }, 
+      scales: sca() 
+    }
   });
 }
 
 function renderImportance(data) {
   destroy('importanceChart');
   const levels = ['low', 'medium', 'high'];
+  
+  const counts = levels.map(l => data.filter(d => d.Product_importance === l).length);
+  
+  const ranked = counts.map((val, index) => ({ val, index }))
+                       .sort((a, b) => b.val - a.val); 
+
+  const bgColors = [];
+  ranked.forEach((item, rank) => {
+    if (rank === 0) {
+      bgColors[item.index] = '#ef4444'; 
+    } else if (rank === 1) {
+      bgColors[item.index] = '#eab308'; 
+    } else {
+      bgColors[item.index] = '#22c55e'; 
+    }
+  });
+
   charts['importanceChart'] = new Chart(document.getElementById('importanceChart'), {
     type: 'bar',
     data: {
-      labels: ['Rendah', 'Sedang', 'Tinggi'],
-      datasets: [{ data: levels.map(l => data.filter(d => d.Product_importance === l).length), backgroundColor: ['#22c55e', '#eab308', '#ef4444'], borderRadius: 4 }]
+      labels: ['Rendah (Low)', 'Sedang (Medium)', 'Tinggi (High)'],
+      datasets: [{ 
+        label: 'Jumlah Produk', 
+        data: counts, 
+        backgroundColor: bgColors, 
+        borderRadius: 4 
+      }]
     },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip() }, scales: sca() }
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false, 
+      plugins: { legend: { display: false }, tooltip: tip() }, 
+      scales: sca() 
+    }
   });
 }
 
 function renderCorrelation(data) {
-  destroy('corrCallsChart'); destroy('corrWeightChart'); destroy('corrDiscountChart');
+  destroy('corrCallsChart'); destroy('corrWeightChart');
   const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1);
   const late = data.filter(d => d["Reached.on.Time_Y.N"] === 0);
   const avg = (arr, key) => arr.length ? arr.reduce((s, d) => s + (d[key] || 0), 0) / arr.length : 0;
+  
   const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip() }, scales: sca() };
-  const labels = ['Tepat Waktu', 'Terlambat']; const bg = ['#22c55e', '#ef4444'];
+  const labels = ['Tepat Waktu', 'Terlambat']; 
+  const bg = ['#22c55e', '#ef4444'];
 
   charts['corrCallsChart'] = new Chart(document.getElementById('corrCallsChart'), {
-    type: 'bar', data: { labels, datasets: [{ data: [avg(onTime, 'Customer_care_calls'), avg(late, 'Customer_care_calls')], backgroundColor: bg, borderRadius: 4 }] }, options: opts
+    type: 'bar', data: { labels, datasets: [{ label: 'Rata-rata Panggilan CS', data: [avg(onTime, 'Customer_care_calls'), avg(late, 'Customer_care_calls')], backgroundColor: bg, borderRadius: 4 }] }, options: opts
   });
+  
   charts['corrWeightChart'] = new Chart(document.getElementById('corrWeightChart'), {
-    type: 'bar', data: { labels, datasets: [{ data: [avg(onTime, 'Weight_in_gms'), avg(late, 'Weight_in_gms')], backgroundColor: bg, borderRadius: 4 }] }, options: opts
-  });
-  charts['corrDiscountChart'] = new Chart(document.getElementById('corrDiscountChart'), {
-    type: 'bar', data: { labels, datasets: [{ data: [avg(onTime, 'Discount_offered'), avg(late, 'Discount_offered')], backgroundColor: bg, borderRadius: 4 }] }, options: opts
+    type: 'bar', data: { labels, datasets: [{ label: 'Rata-rata Berat (gram)', data: [avg(onTime, 'Weight_in_gms'), avg(late, 'Weight_in_gms')], backgroundColor: bg, borderRadius: 4 }] }, options: opts
   });
 }
 
@@ -569,7 +623,7 @@ function renderTrend(data) {
     const k = d.dummy_timestamp;
     if (!groups[k]) groups[k] = { label: d.dummy_month, total: 0, late: 0 };
     groups[k].total++;
-    if (d["Reached.on.Time_Y.N"] === 0) groups[k].late++;
+    if (d["Reached.on.Time_Y.N"] === 0) groups[k].late++; 
   });
 
   const sortedKeys = Object.keys(groups).sort();
@@ -577,7 +631,7 @@ function renderTrend(data) {
     type: 'line',
     data: {
       labels: sortedKeys.map(k => groups[k].label),
-      datasets: [{ label: '% Keterlambatan', data: sortedKeys.map(k => (groups[k].late / groups[k].total * 100).toFixed(1)), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#ef4444' }]
+      datasets: [{ label: '% Persentase Keterlambatan', data: sortedKeys.map(k => (groups[k].late / groups[k].total * 100).toFixed(1)), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#ef4444' }]
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: tip() }, scales: sca() }
   });
