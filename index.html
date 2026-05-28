@@ -97,7 +97,7 @@
 
     .content { flex: 1; overflow-y: auto; padding: 20px 24px 24px; }
 
-    /* ── KPI GRID (Diubah menjadi 4 kolom) ────────────────────────────────── */
+    /* ── KPI GRID ────────────────────────────────── */
     .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
     .kpi-card { background: var(--surface); padding: 16px; }
     .kpi-lbl { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
@@ -242,6 +242,12 @@
         <option value="medium">Medium Priority</option>
         <option value="high">High Priority</option>
       </select>
+      <select id="slicer-weight" onchange="applySlicers()">
+        <option value="">Semua Kategori Berat</option>
+        <option value="Ringan (< 2kg)">Ringan (< 2kg)</option>
+        <option value="Sedang (2kg - 4kg)">Sedang (2kg - 4kg)</option>
+        <option value="Berat (> 4kg)">Berat (> 4kg)</option>
+      </select>
     </div>
 
     <div class="content">
@@ -249,7 +255,7 @@
         <div class="kpi-card"><div class="kpi-lbl">Total Volume</div><div class="kpi-val accent" id="kpi-total">—</div><div class="kpi-sub">total pengiriman</div></div>
         <div class="kpi-card"><div class="kpi-lbl">On-Time Performance</div><div class="kpi-val green" id="kpi-ontime">—</div><div class="kpi-sub">tepat waktu</div></div>
         <div class="kpi-card"><div class="kpi-lbl">Keterlambatan (Late)</div><div class="kpi-val red" id="kpi-nottime">—</div><div class="kpi-sub">gagal estimasi</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Rata-rata Rating</div><div class="kpi-val yellow" id="kpi-rating">—</div><div class="kpi-sub">kepuasan layanan (1-5)</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Promo/Diskon Tinggi</div><div class="kpi-val yellow" id="kpi-discount">—</div><div class="kpi-sub">pesanan dengan diskon >10%</div></div>
       </div>
 
       <div class="section-title">🏢 Kinerja Operasional & Rute</div>
@@ -271,12 +277,12 @@
       <div class="section-title">📦 Analisis Pelanggan & Produk</div>
       <div class="charts-row-2">
         <div class="chart-card">
-          <div class="chart-head"><div><div class="chart-title">Customer Impact (Rating)</div><div class="chart-sub">Tingkat Kepuasan Pelanggan</div></div><span class="chart-tag">BAR</span></div>
-          <div class="chart-wrap"><canvas id="ratingChart"></canvas></div>
-        </div>
-        <div class="chart-card">
           <div class="chart-head"><div><div class="chart-title">Karakteristik Produk (Priority)</div><div class="chart-sub">Tingkat Kepentingan Barang</div></div><span class="chart-tag">BAR</span></div>
           <div class="chart-wrap"><canvas id="importanceChart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><div><div class="chart-title">Analisis Dampak Diskon</div><div class="chart-sub">Hubungan Besaran Diskon & Ketepatan</div></div><span class="chart-tag">STACKED BAR</span></div>
+          <div class="chart-wrap"><canvas id="discountChart"></canvas></div>
         </div>
       </div>
 
@@ -356,11 +362,13 @@ function applySlicers() {
   const w = document.getElementById('slicer-warehouse').value;
   const s = document.getElementById('slicer-shipment').value;
   const i = document.getElementById('slicer-importance').value;
+  const b = document.getElementById('slicer-weight').value;
 
   filteredData = rawData.filter(d => {
     if (w && d.Warehouse_block !== w) return false;
     if (s && d.Mode_of_Shipment !== s) return false;
     if (i && d.Product_importance !== i) return false;
+    if (b && d.Kategori_Berat !== b) return false;
     return true;
   });
 
@@ -373,8 +381,9 @@ function applySlicers() {
   renderShipment(filteredData); 
   renderWarehouse(filteredData); 
   
-  renderRating(filteredData); 
   renderImportance(filteredData);
+  renderDiscount(filteredData);
+  
   renderCorrelation(filteredData);
   renderTrend(filteredData);
 }
@@ -393,12 +402,13 @@ function exportData() {
 
 function renderKPIs(data) {
   const n = data.length || 1; 
-  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length;
+  const onTime = data.filter(d => d["Reached.on.Time_Y.N"] === 1).length; 
+  const highDiscount = data.filter(d => d.Kategori_Diskon === 'Tinggi (>10%)').length; 
   
   document.getElementById('kpi-total').textContent = data.length.toLocaleString();
   document.getElementById('kpi-ontime').textContent = data.length ? ((onTime/n)*100).toFixed(1)+'%' : '0%';
   document.getElementById('kpi-nottime').textContent = data.length ? (data.length-onTime).toLocaleString() : '0';
-  document.getElementById('kpi-rating').textContent = data.length ? (data.reduce((s,d)=>s+(d.Customer_rating||0),0)/n).toFixed(2) : '0';
+  document.getElementById('kpi-discount').textContent = data.length ? ((highDiscount/n)*100).toFixed(1)+'%' : '0%';
 }
 
 function renderSidebar(data) {
@@ -436,163 +446,98 @@ function renderOnTime(data) {
 function renderShipment(data) {
   destroy('shipmentChart');
   const modes = ['Ship', 'Flight', 'Road'];
-  
   const counts = modes.map(m => data.filter(d => d.Mode_of_Shipment === m).length);
-  
-  const ranked = counts.map((val, index) => ({ val, index }))
-                       .sort((a, b) => b.val - a.val); 
-
+  const ranked = counts.map((val, index) => ({ val, index })).sort((a, b) => b.val - a.val); 
   const bgColors = [];
   ranked.forEach((item, rank) => {
-    if (rank === 0) {
-      bgColors[item.index] = '#ef4444'; 
-    } else if (rank === 1) {
-      bgColors[item.index] = '#eab308'; 
-    } else {
-      bgColors[item.index] = '#22c55e'; 
-    }
+    if (rank === 0) bgColors[item.index] = '#ef4444'; 
+    else if (rank === 1) bgColors[item.index] = '#eab308'; 
+    else bgColors[item.index] = '#22c55e'; 
   });
 
   charts['shipmentChart'] = new Chart(document.getElementById('shipmentChart'), {
     type: 'doughnut',
-    data: {
-      labels: modes,
-      datasets: [{
-        data: counts,
-        backgroundColor: bgColors,
-        borderColor: '#111',
-        borderWidth: 3,
-        hoverOffset: 4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: '68%',
-      plugins: {
-        legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } },
-        tooltip: tip()
-      }
-    }
+    data: { labels: modes, datasets: [{ data: counts, backgroundColor: bgColors, borderColor: '#111', borderWidth: 3, hoverOffset: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 10 } }, tooltip: tip() } }
   });
 }
 
 function renderWarehouse(data) {
   destroy('warehouseChart');
   const blocks = ['A','B','C','D','F'];
-  
   const counts = blocks.map(b => data.filter(d => d.Warehouse_block === b).length);
-  
-  const ranked = counts.map((val, index) => ({ val, index }))
-                       .sort((a, b) => b.val - a.val); 
-
+  const ranked = counts.map((val, index) => ({ val, index })).sort((a, b) => b.val - a.val); 
   const bgColors = [];
   ranked.forEach((item, rank) => {
-    if (rank === 0) {
-      bgColors[item.index] = '#ef4444'; 
-    } else if (rank === 1 || rank === 2) {
-      bgColors[item.index] = '#eab308'; 
-    } else {
-      bgColors[item.index] = '#22c55e'; 
-    }
+    if (rank === 0) bgColors[item.index] = '#ef4444'; 
+    else if (rank === 1 || rank === 2) bgColors[item.index] = '#eab308'; 
+    else bgColors[item.index] = '#22c55e'; 
   });
 
   charts['warehouseChart'] = new Chart(document.getElementById('warehouseChart'), {
     type: 'bar', 
-    data: { 
-      labels: blocks.map(b => 'Blok ' + b), 
-      datasets: [{ 
-        label: 'Beban Paket', 
-        data: counts, 
-        backgroundColor: bgColors, 
-        borderRadius: 4 
-      }] 
-    },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { legend: { display: false }, tooltip: tip() }, 
-      scales: sca() 
-    }
-  });
-}
-
-function renderRating(data) {
-  destroy('ratingChart');
-  
-  const counts = [1,2,3,4,5].map(r => data.filter(d => d.Customer_rating === r).length);
-  
-  const ranked = counts.map((val, index) => ({ val, index }))
-                       .sort((a, b) => b.val - a.val); 
-
-  const bgColors = [];
-
-  ranked.forEach((item, rank) => {
-    if (rank === 0) {
-      bgColors[item.index] = '#ef4444'; 
-    } else if (rank === 1 || rank === 2) {
-      bgColors[item.index] = '#eab308'; 
-    } else {
-      bgColors[item.index] = '#22c55e'; 
-    }
-  });
-
-  charts['ratingChart'] = new Chart(document.getElementById('ratingChart'), {
-    type: 'bar', 
-    data: { 
-      labels: ['★ 1','★★ 2','★★★ 3','★★★★ 4','★★★★★ 5'], 
-      datasets: [{ 
-        label: 'Jumlah Pelanggan', 
-        data: counts, 
-        backgroundColor: bgColors, 
-        borderRadius: 4 
-      }] 
-    },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { legend: { display: false }, tooltip: tip() }, 
-      scales: sca() 
-    }
+    data: { labels: blocks.map(b => 'Blok ' + b), datasets: [{ label: 'Beban Paket', data: counts, backgroundColor: bgColors, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip() }, scales: sca() }
   });
 }
 
 function renderImportance(data) {
   destroy('importanceChart');
   const levels = ['low', 'medium', 'high'];
-  
   const counts = levels.map(l => data.filter(d => d.Product_importance === l).length);
-  
-  const ranked = counts.map((val, index) => ({ val, index }))
-                       .sort((a, b) => b.val - a.val); 
-
+  const ranked = counts.map((val, index) => ({ val, index })).sort((a, b) => b.val - a.val); 
   const bgColors = [];
   ranked.forEach((item, rank) => {
-    if (rank === 0) {
-      bgColors[item.index] = '#ef4444'; 
-    } else if (rank === 1) {
-      bgColors[item.index] = '#eab308'; 
-    } else {
-      bgColors[item.index] = '#22c55e'; 
-    }
+    if (rank === 0) bgColors[item.index] = '#ef4444'; 
+    else if (rank === 1) bgColors[item.index] = '#eab308'; 
+    else bgColors[item.index] = '#22c55e'; 
   });
 
   charts['importanceChart'] = new Chart(document.getElementById('importanceChart'), {
     type: 'bar',
+    data: { labels: ['Rendah (Low)', 'Sedang (Medium)', 'Tinggi (High)'], datasets: [{ label: 'Jumlah Produk', data: counts, backgroundColor: bgColors, borderRadius: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip() }, scales: sca() }
+  });
+}
+
+function renderDiscount(data) {
+  destroy('discountChart');
+  
+  const categories = ['Rendah (<=10%)', 'Tinggi (>10%)'];
+  const onTimeData = [0, 0];
+  const lateData = [0, 0];
+
+  data.forEach(d => {
+    const idx = categories.indexOf(d.Kategori_Diskon);
+    if (idx !== -1) {
+      if (d["Reached.on.Time_Y.N"] === 1) {
+        onTimeData[idx]++;
+      } else {
+        lateData[idx]++;
+      }
+    }
+  });
+
+  charts['discountChart'] = new Chart(document.getElementById('discountChart'), {
+    type: 'bar',
     data: {
-      labels: ['Rendah (Low)', 'Sedang (Medium)', 'Tinggi (High)'],
-      datasets: [{ 
-        label: 'Jumlah Produk', 
-        data: counts, 
-        backgroundColor: bgColors, 
-        borderRadius: 4 
-      }]
+      labels: categories,
+      datasets: [
+        { label: 'Tepat Waktu', data: onTimeData, backgroundColor: '#22c55e', borderRadius: 4 },
+        { label: 'Terlambat', data: lateData, backgroundColor: '#ef4444', borderRadius: 4 }
+      ]
     },
-    options: { 
-      responsive: true, 
-      maintainAspectRatio: false, 
-      plugins: { legend: { display: false }, tooltip: tip() }, 
-      scales: sca() 
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { 
+        legend: { position: 'top', labels: { boxWidth: 10, padding: 10, color: '#888', font: {family: "'IBM Plex Mono', monospace"} } }, 
+        tooltip: tip() 
+      },
+      scales: {
+        x: { stacked: true, ticks: { color: '#666' }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: '#666' }, grid: { color: DIM, drawBorder: false } }
+      }
     }
   });
 }

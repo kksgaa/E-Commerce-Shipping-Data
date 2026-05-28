@@ -1,256 +1,360 @@
-let currentPage = 1;
-const PAGE_SIZE = 15;
-let totalRows = 0;
-let activeFilters = {};
-let editingId = null;
-
-document.addEventListener("DOMContentLoaded", () => {
-  loadTable();
-  bindFilterEvents();
-  bindModalEvents();
-  bindFormEvents();
-});
-
-async function loadTable() {
-  setTableLoading(true);
-  try {
-    const { data, count } = await fetchAllData(activeFilters, currentPage, PAGE_SIZE);
-    totalRows = count || 0;
-    renderTable(data);
-    renderPagination();
-    document.getElementById("row-count").textContent = `${totalRows.toLocaleString()} baris`;
-  } catch (err) {
-    showToastCrud("Gagal memuat data: " + err.message, "error");
-  } finally {
-    setTableLoading(false);
-  }
-}
-
-function renderTable(data) {
-  const tbody = document.getElementById("data-tbody");
-  if (!data || data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" class="empty-row">Tidak ada data ditemukan</td></tr>`;
+// ==========================================
+// INISIALISASI
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof supabaseClient === 'undefined') {
+    alert("🛑 ERROR: config.js belum dimuat atau Supabase Client gagal!");
     return;
   }
-  tbody.innerHTML = data.map(d => `
-    <tr data-id="${d.ID}">
-      <td><span class="id-badge">#${d.ID}</span></td>
-      <td><span class="badge badge-block">${d.Warehouse_block}</span></td>
-      <td><span class="badge badge-ship ship-${d.Mode_of_Shipment?.toLowerCase()}">${d.Mode_of_Shipment}</span></td>
-      <td class="num">${d.Customer_care_calls}</td>
-      <td class="num">${"★".repeat(d.Customer_rating || 0)}<span class="num-sub">(${d.Customer_rating})</span></td>
-      <td class="num">$${(d.Cost_of_the_Product || 0).toLocaleString()}</td>
-      <td class="num">${d.Prior_purchases}</td>
-      <td><span class="badge badge-imp imp-${d.Product_importance}">${d.Product_importance}</span></td>
-      <td>${d.Gender === "M" ? "♂ Pria" : "♀ Wanita"}</td>
-      <td class="num">${d.Discount_offered}%</td>
-      <td class="num">${(d.Weight_in_gms || 0).toLocaleString()} g</td>
-      <td>
-        <span class="status-badge ${d["Reached.on.Time_Y.N"] === 1 ? 'status-on' : 'status-late'}">
-          ${d["Reached.on.Time_Y.N"] === 1 ? "✓ Tepat" : "✗ Telat"}
-        </span>
-      </td>
-      <td class="action-col">
-        <button class="btn-icon btn-edit" onclick="openEditModal(${d.ID})" title="Edit">✏️</button>
-        <button class="btn-icon btn-delete" onclick="confirmDelete(${d.ID})" title="Hapus">🗑️</button>
-      </td>
-    </tr>
-  `).join("");
-}
 
-function renderPagination() {
-  const totalPages = Math.ceil(totalRows / PAGE_SIZE);
-  const pag = document.getElementById("pagination");
-  if (totalPages <= 1) { pag.innerHTML = ""; return; }
+  // Clock
+  setInterval(() => {
+    const el = document.getElementById('sb-clock');
+    if (el) el.textContent = new Date().toLocaleTimeString('id-ID');
+  }, 1000);
 
-  let html = `<button onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>‹</button>`;
-  const range = pageRange(currentPage, totalPages);
-  range.forEach(p => {
-    if (p === "...") {
-      html += `<span class="pag-dots">…</span>`;
-    } else {
-      html += `<button class="${p === currentPage ? 'pag-active' : ''}" onclick="goPage(${p})">${p}</button>`;
-    }
+  // Event listeners
+  document.getElementById('btn-add').addEventListener('click', () => openModal());
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('btn-cancel').addEventListener('click', closeModal);
+  document.getElementById('btn-save').addEventListener('click', saveData);
+  document.getElementById('btn-reset-filter').addEventListener('click', resetFilter);
+  document.getElementById('filter-reached').addEventListener('change', applyFilter);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
   });
-  html += `<button onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}>›</button>`;
-  pag.innerHTML = html;
-}
 
-function pageRange(cur, total) {
-  if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
-  if (cur <= 4) return [1, 2, 3, 4, 5, "...", total];
-  if (cur >= total - 3) return [1, "...", total-4, total-3, total-2, total-1, total];
-  return [1, "...", cur-1, cur, cur+1, "...", total];
-}
+  fetchDataManagement();
+});
 
-function goPage(p) {
-  const totalPages = Math.ceil(totalRows / PAGE_SIZE);
-  if (p < 1 || p > totalPages) return;
-  currentPage = p;
-  loadTable();
-}
+// ==========================================
+// STATE
+// ==========================================
+let allCrudData = [];
+let filteredData = [];
+let currentPage = 1;
+const ROWS_PER_PAGE = 50;
+let editingId = null;
 
-function bindFilterEvents() {
-  document.getElementById("filter-warehouse")?.addEventListener("change", applyFilters);
-  document.getElementById("filter-shipment")?.addEventListener("change", applyFilters);
-  document.getElementById("filter-importance")?.addEventListener("change", applyFilters);
-  document.getElementById("filter-reached")?.addEventListener("change", applyFilters);
-  let searchTimer;
-  document.getElementById("search-input")?.addEventListener("input", e => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(applyFilters, 400);
-  });
-  document.getElementById("btn-reset-filter")?.addEventListener("click", resetFilters);
-}
+// ==========================================
+// 1. READ: Memuat Data
+// ==========================================
+async function fetchDataManagement() {
+  const tableBody = document.getElementById('crud-table-body');
+  if (tableBody) tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Memuat data warehouse dari Supabase...</td></tr>';
 
-function applyFilters() {
-  activeFilters = {
-    warehouse_block: document.getElementById("filter-warehouse")?.value || "",
-    mode_of_shipment: document.getElementById("filter-shipment")?.value || "",
-    product_importance: document.getElementById("filter-importance")?.value || "",
-    reached: document.getElementById("filter-reached")?.value,
-    search: document.getElementById("search-input")?.value || "",
-  };
-  Object.keys(activeFilters).forEach(k => {
-    if (activeFilters[k] === "" || activeFilters[k] === undefined) delete activeFilters[k];
-  });
-  currentPage = 1;
-  loadTable();
-}
-
-function resetFilters() {
-  document.getElementById("filter-warehouse").value = "";
-  document.getElementById("filter-shipment").value = "";
-  document.getElementById("filter-importance").value = "";
-  document.getElementById("filter-reached").value = "";
-  document.getElementById("search-input").value = "";
-  activeFilters = {};
-  currentPage = 1;
-  loadTable();
-}
-
-function bindModalEvents() {
-  document.getElementById("btn-add")?.addEventListener("click", openAddModal);
-  document.getElementById("modal-close")?.addEventListener("click", closeModal);
-  document.getElementById("modal-overlay")?.addEventListener("click", e => {
-    if (e.target === e.currentTarget) closeModal();
-  });
-  document.getElementById("confirm-cancel")?.addEventListener("click", closeConfirm);
-}
-
-function openAddModal() {
-  editingId = null;
-  document.getElementById("modal-title").textContent = "Tambah Data";
-  document.getElementById("entry-form").reset();
-  document.getElementById("field-id").value = "";
-  document.getElementById("modal-overlay").classList.add("active");
-}
-
-async function openEditModal(id) {
   try {
-    const row = await fetchRowById(id);
-    editingId = id;
-    document.getElementById("modal-title").textContent = "Edit Data #" + id;
-    document.getElementById("field-id").value = row.ID;
-    document.getElementById("field-warehouse").value = row.Warehouse_block;
-    document.getElementById("field-shipment").value = row.Mode_of_Shipment;
-    document.getElementById("field-care-calls").value = row.Customer_care_calls;
-    document.getElementById("field-rating").value = row.Customer_rating;
-    document.getElementById("field-cost").value = row.Cost_of_the_Product;
-    document.getElementById("field-prior").value = row.Prior_purchases;
-    document.getElementById("field-importance").value = row.Product_importance;
-    document.getElementById("field-gender").value = row.Gender;
-    document.getElementById("field-discount").value = row.Discount_offered;
-    document.getElementById("field-weight").value = row.Weight_in_gms;
-    document.getElementById("field-reached").value = row["Reached.on.Time_Y.N"];
-    document.getElementById("modal-overlay").classList.add("active");
-  } catch (err) {
-    showToastCrud("Gagal memuat data: " + err.message, "error");
+    const BATCH = 1000;
+    let loadedData = [];
+    let from = 0;
+
+    while (true) {
+      const { data, error } = await supabaseClient
+        .from('Fact_Pengiriman')
+        .select('*')
+        .range(from, from + BATCH - 1)
+        .order('ID', { ascending: true });
+
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+
+      loadedData = loadedData.concat(data);
+      if (data.length < BATCH) break;
+      from += BATCH;
+    }
+
+    allCrudData = loadedData;
+    filteredData = [...allCrudData];
+    updateBadgeAndCount();
+    currentPage = 1;
+    renderCrudTable();
+    renderPagination();
+  } catch (error) {
+    console.error("Gagal memuat manajemen data:", error);
+    if (tableBody) tableBody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:24px;color:#ef4444;">🛑 Error: ${error.message}</td></tr>`;
+    showToast('❌ Gagal memuat data: ' + error.message, 'error');
   }
+}
+
+// ==========================================
+// 2. RENDER: Menampilkan Data ke Tabel
+// ==========================================
+function renderCrudTable() {
+  const tableBody = document.getElementById('crud-table-body');
+  if (!tableBody) return;
+
+  if (filteredData.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-muted);">Tidak ada data ditemukan.</td></tr>';
+    updatePageInfo();
+    return;
+  }
+
+  const start = (currentPage - 1) * ROWS_PER_PAGE;
+  const end = start + ROWS_PER_PAGE;
+  const pageData = filteredData.slice(start, end);
+
+  let html = '';
+  pageData.forEach(row => {
+    // FIX: 0 = Tepat Waktu, 1 = Terlambat
+    const reached = Number(row["Reached.on.Time_Y.N"]);
+    const statusBadge = reached === 0
+      ? '<span class="badge status-on">Tepat Waktu</span>'
+      : '<span class="badge status-late">Terlambat</span>';
+
+    html += `
+      <tr>
+        <td style="font-family:monospace; font-weight:bold; color:var(--accent);">#${row.ID}</td>
+        <td>Gudang ${row.ID_Gudang}</td>
+        <td>Metode ${row.ID_Metode_Kirim}</td>
+        <td class="num">$${Number(row.Cost_of_the_Product).toLocaleString()}</td>
+        <td class="num">${Number(row.Weight_in_gms).toLocaleString()}g</td>
+        <td>${row.Kategori_Berat || '-'}</td>
+        <td class="num">${row.Discount_offered}%</td>
+        <td class="num">${row.Customer_care_calls}</td>
+        <td class="num">${row.Prior_purchases}x</td>
+        <td>${statusBadge}</td>
+        <td class="action-col">
+          <button class="btn-icon" title="Edit" onclick="openModal(${row.ID})">✏️</button>
+          <button class="btn-icon" title="Hapus" onclick="deleteRowData(${row.ID})" style="color:#ef4444;">🗑️</button>
+        </td>
+      </tr>
+    `;
+  });
+  tableBody.innerHTML = html;
+  updatePageInfo();
+}
+
+// ==========================================
+// PAGINATION
+// ==========================================
+function renderPagination() {
+  const container = document.getElementById('pagination');
+  if (!container) return;
+
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+  let html = '';
+  html += `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">‹</button>`;
+
+  let start = Math.max(1, currentPage - 2);
+  let end = Math.min(totalPages, currentPage + 2);
+  if (start > 1) html += `<button onclick="goToPage(1)">1</button>${start > 2 ? '<button disabled>…</button>' : ''}`;
+  for (let i = start; i <= end; i++) {
+    html += `<button class="${i === currentPage ? 'pag-active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  if (end < totalPages) html += `${end < totalPages - 1 ? '<button disabled>…</button>' : ''}<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+  html += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">›</button>`;
+
+  container.innerHTML = html;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  renderCrudTable();
+  renderPagination();
+  document.querySelector('.table-container').scrollTop = 0;
+}
+
+function updatePageInfo() {
+  const el = document.getElementById('page-info');
+  if (!el) return;
+  const totalPages = Math.ceil(filteredData.length / ROWS_PER_PAGE);
+  const start = Math.min((currentPage - 1) * ROWS_PER_PAGE + 1, filteredData.length);
+  const end = Math.min(currentPage * ROWS_PER_PAGE, filteredData.length);
+  el.textContent = filteredData.length > 0
+    ? `Menampilkan ${start}–${end} dari ${filteredData.length.toLocaleString()} baris`
+    : 'Tidak ada data';
+}
+
+function updateBadgeAndCount() {
+  const badge = document.getElementById('nav-badge-total');
+  if (badge) badge.textContent = allCrudData.length.toLocaleString();
+  const rowCount = document.getElementById('row-count');
+  if (rowCount) rowCount.textContent = `${allCrudData.length.toLocaleString()} total baris`;
+}
+
+// ==========================================
+// 3. DELETE
+// ==========================================
+async function deleteRowData(id) {
+  if (!confirm(`Hapus data #${id}?`)) return;
+  try {
+    const { error } = await supabaseClient.from('Fact_Pengiriman').delete().eq('ID', id);
+    if (error) throw error;
+    showToast(`✅ Data #${id} berhasil dihapus!`, 'success');
+    fetchDataManagement();
+  } catch (error) {
+    showToast("❌ Gagal hapus: " + error.message, 'error');
+  }
+}
+
+// ==========================================
+// 4. SEARCH
+// ==========================================
+function searchCrudData() {
+  const keyword = document.getElementById('search-input').value.toLowerCase().trim();
+  const filterVal = document.getElementById('filter-reached').value;
+
+  filteredData = allCrudData.filter(d => {
+    const matchSearch = keyword === '' ||
+      String(d.ID).includes(keyword) ||
+      String(d.Status_Pengiriman || '').toLowerCase().includes(keyword) ||
+      String(d.ID_Gudang).includes(keyword) ||
+      String(d.ID_Metode_Kirim).includes(keyword);
+
+    const matchFilter = filterVal === '' || String(d["Reached.on.Time_Y.N"]) === filterVal;
+
+    return matchSearch && matchFilter;
+  });
+
+  currentPage = 1;
+  renderCrudTable();
+  renderPagination();
+}
+
+// ==========================================
+// 5. FILTER
+// ==========================================
+function applyFilter() {
+  searchCrudData();
+}
+
+function resetFilter() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('filter-reached').value = '';
+  filteredData = [...allCrudData];
+  currentPage = 1;
+  renderCrudTable();
+  renderPagination();
+}
+
+// ==========================================
+// 6. MODAL: Tambah / Edit
+// ==========================================
+function openModal(id = null) {
+  editingId = id;
+  const modal = document.getElementById('modal-overlay');
+  const title = document.getElementById('modal-title');
+
+  // Reset form
+  document.getElementById('field-gudang').value = '';
+  document.getElementById('field-metode').value = '1';
+  document.getElementById('field-cost').value = '';
+  document.getElementById('field-weight').value = '';
+  document.getElementById('field-discount').value = '';
+  document.getElementById('field-calls').value = '';
+  document.getElementById('field-prior').value = '';
+  document.getElementById('field-reached').value = '0';
+
+  if (id !== null) {
+    title.textContent = `Edit Data #${id}`;
+    const row = allCrudData.find(r => r.ID === id);
+    if (row) {
+      document.getElementById('field-gudang').value = row.ID_Gudang;
+      document.getElementById('field-metode').value = row.ID_Metode_Kirim;
+      document.getElementById('field-cost').value = row.Cost_of_the_Product;
+      document.getElementById('field-weight').value = row.Weight_in_gms;
+      document.getElementById('field-discount').value = row.Discount_offered;
+      document.getElementById('field-calls').value = row.Customer_care_calls;
+      document.getElementById('field-prior').value = row.Prior_purchases;
+      document.getElementById('field-reached').value = row["Reached.on.Time_Y.N"];
+    }
+  } else {
+    title.textContent = 'Tambah Data Fakta';
+  }
+
+  modal.classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById("modal-overlay").classList.remove("active");
+  document.getElementById('modal-overlay').classList.remove('active');
   editingId = null;
 }
 
-function bindFormEvents() {
-  document.getElementById("entry-form")?.addEventListener("submit", async e => {
-    e.preventDefault();
-    const btn = document.getElementById("btn-save");
-    btn.disabled = true;
-    btn.textContent = "Menyimpan…";
+// ==========================================
+// 7. SAVE (INSERT / UPDATE)
+// ==========================================
+async function saveData() {
+  const gudang = parseInt(document.getElementById('field-gudang').value);
+  const metode = parseInt(document.getElementById('field-metode').value);
+  const cost = parseFloat(document.getElementById('field-cost').value);
+  const weight = parseFloat(document.getElementById('field-weight').value);
+  const discount = parseFloat(document.getElementById('field-discount').value);
+  const calls = parseInt(document.getElementById('field-calls').value);
+  const prior = parseInt(document.getElementById('field-prior').value);
+  const reached = parseInt(document.getElementById('field-reached').value);
 
-    const row = {
-      Warehouse_block: document.getElementById("field-warehouse").value,
-      Mode_of_Shipment: document.getElementById("field-shipment").value,
-      Customer_care_calls: parseInt(document.getElementById("field-care-calls").value),
-      Customer_rating: parseInt(document.getElementById("field-rating").value),
-      Cost_of_the_Product: parseInt(document.getElementById("field-cost").value),
-      Prior_purchases: parseInt(document.getElementById("field-prior").value),
-      Product_importance: document.getElementById("field-importance").value,
-      Gender: document.getElementById("field-gender").value,
-      Discount_offered: parseInt(document.getElementById("field-discount").value),
-      Weight_in_gms: parseInt(document.getElementById("field-weight").value),
-      "Reached.on.Time_Y.N": parseInt(document.getElementById("field-reached").value),
-    };
+  if (!gudang || !metode || isNaN(cost) || isNaN(weight) || isNaN(discount) || isNaN(calls) || isNaN(prior)) {
+    showToast('⚠️ Lengkapi semua field!', 'error');
+    return;
+  }
 
-    try {
-      if (editingId) {
-        await updateRow(editingId, row);
-        showToastCrud("Data berhasil diperbarui ✓", "success");
-      } else {
-        await insertRow(row);
-        showToastCrud("Data berhasil ditambahkan ✓", "success");
-      }
-      closeModal();
-      loadTable();
-    } catch (err) {
-      showToastCrud("Gagal menyimpan: " + err.message, "error");
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Simpan";
+  // Hitung Kategori_Berat otomatis
+  let kategori_berat = 'Berat';
+  if (weight < 2000) kategori_berat = 'Ringan';
+  else if (weight < 4000) kategori_berat = 'Sedang';
+
+  // Hitung Status_Pengiriman otomatis
+  const status_pengiriman = reached === 1 ? 'Terlambat' : 'Tepat Waktu';
+
+  // Hitung Kategori_Diskon otomatis
+  let kategori_diskon = 'Tinggi';
+  if (discount < 10) kategori_diskon = 'Rendah';
+  else if (discount < 30) kategori_diskon = 'Sedang';
+
+  const payload = {
+    ID_Gudang: gudang,
+    ID_Metode_Kirim: metode,
+    Cost_of_the_Product: cost,
+    Weight_in_gms: weight,
+    Kategori_Berat: kategori_berat,
+    Discount_offered: discount,
+    Kategori_Diskon: kategori_diskon,
+    Customer_care_calls: calls,
+    Prior_purchases: prior,
+    "Reached.on.Time_Y.N": reached,
+    Status_Pengiriman: status_pengiriman,
+  };
+
+  try {
+    if (editingId !== null) {
+      // UPDATE
+      const { error } = await supabaseClient
+        .from('Fact_Pengiriman')
+        .update(payload)
+        .eq('ID', editingId);
+      if (error) throw error;
+      showToast(`✅ Data #${editingId} berhasil diupdate!`, 'success');
+    } else {
+      // INSERT
+      const { error } = await supabaseClient
+        .from('Fact_Pengiriman')
+        .insert([payload]);
+      if (error) throw error;
+      showToast('✅ Data baru berhasil ditambahkan!', 'success');
     }
-  });
+
+    closeModal();
+    fetchDataManagement();
+  } catch (error) {
+    showToast('❌ Gagal simpan: ' + error.message, 'error');
+  }
 }
 
-let pendingDeleteId = null;
-
-function confirmDelete(id) {
-  pendingDeleteId = id;
-  document.getElementById("confirm-overlay").classList.add("active");
-}
-
-function closeConfirm() {
-  pendingDeleteId = null;
-  document.getElementById("confirm-overlay").classList.remove("active");
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("confirm-ok")?.addEventListener("click", async () => {
-    if (!pendingDeleteId) return;
-    try {
-      await deleteRow(pendingDeleteId);
-      showToastCrud("Data #" + pendingDeleteId + " dihapus ✓", "success");
-      closeConfirm();
-      loadTable();
-    } catch (err) {
-      showToastCrud("Gagal menghapus: " + err.message, "error");
-      closeConfirm();
-    }
-  });
-});
-
-function setTableLoading(loading) {
-  document.getElementById("table-loading").style.display = loading ? "flex" : "none";
-  document.getElementById("data-table-wrap").style.opacity = loading ? "0.4" : "1";
-}
-
-function showToastCrud(msg, type = "info") {
-  const t = document.createElement("div");
-  t.className = `toast toast-${type}`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add("toast-show"), 10);
-  setTimeout(() => { t.classList.remove("toast-show"); setTimeout(() => t.remove(), 300); }, 3500);
+// ==========================================
+// TOAST NOTIFICATION
+// ==========================================
+function showToast(message, type = 'success') {
+  let toast = document.getElementById('app-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'app-toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `toast toast-${type}`;
+  setTimeout(() => toast.classList.add('toast-show'), 10);
+  setTimeout(() => toast.classList.remove('toast-show'), 3500);
 }

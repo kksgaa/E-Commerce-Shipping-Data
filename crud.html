@@ -4,72 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ShipTrack — Data Management</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="crud.js" defer></script>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <style>
+    /* Style persis seperti aslinya agar desain tetap keren */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0a0a0a;
-      --surface: #111111;
-      --surface-2: #1a1a1a;
-      --border: #222222;
-      --border-subtle: #1a1a1a;
-      --text: #e8e8e8;
-      --text-muted: #666;
-      --text-dim: #444;
-      --accent: #ff6b35;
-      --accent-dim: rgba(255,107,53,0.12);
-      --accent-border: rgba(255,107,53,0.25);
-      --green: #22c55e;
-      --green-dim: rgba(34,197,94,0.1);
-      --red: #ef4444;
-      --red-dim: rgba(239,68,68,0.1);
-      --blue: #3b82f6;
-      --yellow: #eab308;
-      --purple: #a855f7;
-      --mono: 'IBM Plex Mono', monospace;
-      --sans: 'IBM Plex Sans', sans-serif;
+      --bg: #0a0a0a; --surface: #111111; --surface-2: #1a1a1a;
+      --border: #222222; --border-subtle: #1a1a1a;
+      --text: #e8e8e8; --text-muted: #666; --text-dim: #444;
+      --accent: #ff6b35; --accent-dim: rgba(255,107,53,0.12); --accent-border: rgba(255,107,53,0.25);
+      --green: #22c55e; --green-dim: rgba(34,197,94,0.1);
+      --red: #ef4444; --red-dim: rgba(239,68,68,0.1);
+      --blue: #3b82f6; --yellow: #eab308;
+      --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
     }
-
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
-
     .app { display: flex; height: 100vh; overflow: hidden; }
 
     /* SIDEBAR */
-    .sidebar {
-      width: 240px; min-width: 240px;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      overflow-y: auto; overflow-x: hidden;
-    }
-    .sidebar::-webkit-scrollbar { width: 3px; }
-    .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
-    .sidebar-logo {
-      display: flex; align-items: center; gap: 10px;
-      padding: 18px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-    }
-    .logo-mark {
-      width: 34px; height: 34px; background: var(--accent); color: #fff;
-      display: grid; place-items: center;
-      font-family: var(--mono); font-weight: 600; font-size: 13px;
-      border-radius: 7px; flex-shrink: 0;
-      box-shadow: 0 0 18px rgba(255,107,53,0.28);
-    }
+    .sidebar { width: 240px; min-width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+    .sidebar::-webkit-scrollbar { width: 3px; } .sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+    .sidebar-logo { display: flex; align-items: center; gap: 10px; padding: 18px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .logo-mark { width: 34px; height: 34px; background: var(--accent); color: #fff; display: grid; place-items: center; font-family: var(--mono); font-weight: 600; font-size: 13px; border-radius: 7px; box-shadow: 0 0 18px rgba(255,107,53,0.28); }
     .logo-text { font-size: 13px; font-weight: 600; letter-spacing: -0.02em; }
     .logo-sub { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
     .sidebar-nav { padding: 10px 8px 4px; }
     .nav-label { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.12em; text-transform: uppercase; padding: 0 8px; margin: 12px 0 4px; }
-    .nav-item {
-      display: flex; align-items: center; gap: 9px;
-      padding: 8px 10px; border-radius: 6px;
-      text-decoration: none; color: var(--text-muted);
-      font-size: 12.5px; font-weight: 500;
-      transition: all 0.15s; margin-bottom: 1px;
-      border: 1px solid transparent;
-    }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 6px; text-decoration: none; color: var(--text-muted); font-size: 12.5px; font-weight: 500; transition: all 0.15s; margin-bottom: 1px; border: 1px solid transparent; }
     .nav-item:hover { background: var(--surface-2); color: var(--text); }
     .nav-item.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-border); }
     .nav-badge { margin-left: auto; font-family: var(--mono); font-size: 9px; background: #1e1e1e; color: var(--text-muted); padding: 2px 6px; border-radius: 99px; border: 1px solid var(--border); }
@@ -77,280 +44,77 @@
     .sb-block-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 11px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
     .sb-block-title { font-size: 9px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
     .stat-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 11px; border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-row:hover { background: var(--surface-2); }
     .stat-lbl { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
     .stat-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     .stat-val { font-family: var(--mono); font-size: 11.5px; font-weight: 600; }
-    .activity-item { display: flex; align-items: flex-start; gap: 9px; padding: 8px 11px; border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
-    .activity-item:last-child { border-bottom: none; }
-    .activity-item:hover { background: var(--surface-2); }
-    .activity-icon { width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
-    .activity-text { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
-    .activity-text strong { color: var(--text); font-weight: 500; display: block; font-size: 11.5px; }
-    .info-rows { padding: 4px 0; }
-    .info-row { display: flex; justify-content: space-between; padding: 5px 11px; border-bottom: 1px solid var(--border-subtle); }
-    .info-row:last-child { border-bottom: none; }
-    .info-key { font-size: 10px; color: var(--text-muted); font-family: var(--mono); }
-    .info-val { font-size: 10px; font-family: var(--mono); }
-    .sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .sidebar-footer { padding: 11px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; margin-top:auto;}
     .sidebar-tag { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 10px; color: var(--text-muted); }
     .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 
     /* MAIN */
     .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-    .topbar {
-      height: 56px; min-height: 56px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px;
-      background: var(--bg);
-      flex-shrink: 0;
-    }
+    .topbar { height: 56px; min-height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--bg); flex-shrink: 0; }
     .topbar-left { display: flex; align-items: center; gap: 12px; }
-    .topbar-title { font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+    .topbar-title { font-size: 14px; font-weight: 600; }
     .row-count { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
-
-    /* TOOLBAR */
-    .toolbar {
-      padding: 14px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px;
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-    .search-input, .filter-select {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 7px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-family: var(--mono);
-      outline: none;
-      transition: border-color 0.15s;
-    }
-    .search-input { min-width: 160px; }
+    .toolbar { padding: 14px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .search-input, .filter-select { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 7px 12px; border-radius: 6px; font-size: 12px; font-family: var(--mono); outline: none; }
     .search-input:focus, .filter-select:focus { border-color: var(--accent); }
-    .search-input::placeholder { color: var(--text-dim); }
-    option { background: var(--surface); }
-
-    .toolbar-gap { flex: 1; }
-
-    .btn {
-      padding: 7px 14px; border-radius: 6px;
-      font-size: 12px; font-weight: 600; font-family: var(--mono);
-      border: none; cursor: pointer; transition: all 0.15s;
-      display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-    }
+    .btn { padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; font-family: var(--mono); border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn-primary { background: var(--accent); color: #fff; }
     .btn-primary:hover { background: #ff5520; }
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
 
     /* TABLE */
-    .table-wrap { flex: 1; overflow: auto; padding: 0 24px 24px; }
+    .table-container { position: relative; flex: 1; overflow: auto; padding: 0 24px 24px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead th {
-      padding: 10px 12px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      font-family: var(--mono); font-size: 10px; font-weight: 600;
-      color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em;
-      text-align: left; white-space: nowrap;
-      position: sticky; top: 0; z-index: 1;
-    }
-    thead th:first-child { border-radius: 6px 0 0 0; }
-    thead th:last-child { border-radius: 0 6px 0 0; }
-    tbody tr {
-      border-bottom: 1px solid var(--border-subtle);
-      transition: background 0.1s;
-    }
+    thead th { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; text-align: left; position: sticky; top: 0; z-index: 1; }
+    tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; }
     tbody tr:hover { background: var(--surface); }
-    tbody td {
-      padding: 10px 12px; color: var(--text-muted);
-      white-space: nowrap;
-    }
+    tbody td { padding: 10px 12px; color: var(--text-muted); white-space: nowrap; }
     .num { text-align: right; font-family: var(--mono); }
-    .empty-row { text-align: center; color: var(--text-dim); padding: 48px; font-family: var(--mono); }
-
-    /* TABLE BADGES */
-    .badge {
-      display: inline-flex; align-items: center;
-      padding: 2px 8px; border-radius: 4px;
-      font-size: 10px; font-weight: 600; font-family: var(--mono);
-      letter-spacing: 0.05em; text-transform: uppercase;
-    }
-    .badge-block { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-border); }
-    .badge-ship { background: rgba(59,130,246,0.1); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
-    .ship-flight { background: rgba(255,107,53,0.1); color: var(--accent); border: 1px solid var(--accent-border); }
-    .ship-road { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
-    .ship-ship { background: rgba(59,130,246,0.1); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
-    .imp-low { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
-    .imp-medium { background: rgba(234,179,8,0.1); color: var(--yellow); border: 1px solid rgba(234,179,8,0.25); }
-    .imp-high { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
-
-    .status-badge {
-      display: inline-flex; align-items: center;
-      padding: 3px 8px; border-radius: 4px;
-      font-size: 10px; font-weight: 700; font-family: var(--mono); white-space: nowrap;
-    }
+    .badge { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; font-family: var(--mono); letter-spacing: 0.05em; text-transform: uppercase; }
     .status-on { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
     .status-late { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
-
-    .id-badge { background: var(--surface-2); color: var(--text-dim); padding: 2px 6px; border-radius: 4px; font-family: var(--mono); font-size: 11px; }
-
-    /* ACTION BUTTONS */
-    .btn-icon {
-      background: transparent; border: none; cursor: pointer;
-      padding: 4px 6px; border-radius: 4px; font-size: 13px;
-      color: var(--text-dim); transition: all 0.15s;
-    }
+    .btn-icon { background: transparent; border: none; cursor: pointer; padding: 4px 6px; border-radius: 4px; font-size: 13px; color: var(--text-dim); transition: all 0.15s; }
     .btn-icon:hover { background: var(--surface-2); color: var(--text); }
     .action-col { text-align: center; }
 
-    /* TABLE LOADING */
-    #table-loading {
-      display: none; position: absolute; inset: 0;
-      background: rgba(10,10,10,0.7); backdrop-filter: blur(2px);
-      z-index: 10; flex-direction: column;
-      align-items: center; justify-content: center; gap: 10px;
-    }
-    .spinner {
-      width: 24px; height: 24px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .table-container { position: relative; flex: 1; overflow: auto; }
-
     /* PAGINATION */
-    .pagination-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 24px;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    #pagination { display: flex; align-items: center; gap: 4px; }
-    #pagination button {
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--text-muted); padding: 5px 10px; border-radius: 5px;
-      font-size: 11px; font-family: var(--mono); font-weight: 500;
-      cursor: pointer; transition: all 0.15s;
-    }
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; border-top: 1px solid var(--border); }
+    #pagination { display: flex; gap: 4px; }
+    #pagination button { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); padding: 5px 10px; border-radius: 5px; font-size: 11px; cursor: pointer; }
     #pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
     #pagination button.pag-active { background: var(--accent); color: #fff; border-color: var(--accent); }
     #pagination button:disabled { opacity: 0.3; cursor: not-allowed; }
-    .pag-dots { color: var(--text-dim); padding: 0 4px; font-family: var(--mono); font-size: 11px; }
 
     /* MODAL */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 100;
-      background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.2s;
-    }
+    .modal-overlay { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
-    .modal-content { transform: scale(0.97) translateY(8px); transition: transform 0.2s; }
-    .modal-overlay.active .modal-content { transform: scale(1) translateY(0); }
-
-    .modal-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 100%; max-width: 600px; margin: 0 16px;
-      max-height: 90vh; overflow-y: auto;
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 24px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    .modal-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
-    .modal-close {
-      background: transparent; border: none; cursor: pointer;
-      color: var(--text-muted); padding: 4px;
-      border-radius: 4px; transition: all 0.15s;
-      display: grid; place-items: center;
-    }
-    .modal-close:hover { background: var(--surface-2); color: var(--text); }
-
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 600px; margin: 0 16px; max-height: 90vh; overflow-y: auto; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); }
+    .modal-title { font-size: 15px; font-weight: 600; }
+    .modal-close { background: transparent; border: none; cursor: pointer; color: var(--text-muted); padding: 4px; border-radius: 4px; }
     .modal-body { padding: 20px 24px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-group { display: flex; flex-direction: column; gap: 5px; }
     .form-group.full { grid-column: 1 / -1; }
-    .form-label {
-      font-size: 9px; font-weight: 700; color: var(--text-dim);
-      letter-spacing: 0.1em; text-transform: uppercase;
-      font-family: var(--mono);
-    }
-    .form-input, .form-select {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-family: var(--sans);
-      outline: none;
-      transition: border-color 0.15s;
-    }
+    .form-label { font-size: 9px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; font-family: var(--mono); }
+    .form-input, .form-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 13px; outline: none; }
     .form-input:focus, .form-select:focus { border-color: var(--accent); }
-    option { background: var(--surface); }
-
-    .modal-footer {
-      display: flex; justify-content: flex-end; gap: 8px;
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-    }
-
-    /* CONFIRM */
-    .confirm-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 100%; max-width: 360px; margin: 0 16px;
-      padding: 28px 24px;
-      text-align: center;
-    }
-    .confirm-icon {
-      width: 44px; height: 44px; border-radius: 50%;
-      background: var(--red-dim); color: var(--red);
-      display: grid; place-items: center; margin: 0 auto 14px;
-    }
-    .confirm-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-    .confirm-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-bottom: 20px; }
-    .confirm-actions { display: flex; flex-direction: column; gap: 8px; }
-    .btn-danger { background: var(--red); color: #fff; border: none; }
-    .btn-danger:hover { background: #dc2626; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 24px; border-top: 1px solid var(--border); }
 
     /* TOAST */
-    .toast {
-      position: fixed; bottom: 20px; right: 20px;
-      padding: 10px 16px; border-radius: 8px;
-      font-size: 12px; font-weight: 500; font-family: var(--mono);
-      background: var(--surface-2); color: var(--text);
-      border: 1px solid var(--border);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      transform: translateY(20px); opacity: 0;
-      transition: all 0.25s; z-index: 9999;
-    }
+    .toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; font-family: var(--mono); background: var(--surface-2); color: var(--text); border: 1px solid var(--border); transform: translateY(20px); opacity: 0; transition: all 0.25s; z-index: 9999; }
     .toast.toast-show { transform: translateY(0); opacity: 1; }
     .toast-success { border-left: 3px solid var(--green); }
     .toast-error { border-left: 3px solid var(--red); }
-
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
   </style>
 </head>
 <body>
 <div class="app">
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-mark">ST</div>
@@ -371,60 +135,17 @@
         <span class="nav-badge" id="nav-badge-total">—</span>
       </a>
     </nav>
-    <!-- CRUD Guide -->
-    <div class="sb-block">
+    <div class="sb-block" style="margin-bottom:8px; margin-top:20px;">
       <div class="sb-block-head">
-        <span class="sb-block-title">Panduan CRUD</span>
-      </div>
-      <div class="activity-item">
-        <div class="activity-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">➕</div>
-        <div class="activity-text"><strong>Tambah Data</strong>Klik "Tambah Data" di topbar kanan</div>
-      </div>
-      <div class="activity-item">
-        <div class="activity-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6">✏️</div>
-        <div class="activity-text"><strong>Edit Data</strong>Klik ikon pensil pada baris tabel</div>
-      </div>
-      <div class="activity-item">
-        <div class="activity-icon" style="background:rgba(239,68,68,0.12);color:#ef4444">🗑️</div>
-        <div class="activity-text"><strong>Hapus Data</strong>Klik ikon tong sampah &amp; konfirmasi</div>
-      </div>
-      <div class="activity-item">
-        <div class="activity-icon" style="background:rgba(168,85,247,0.12);color:#a855f7">🔍</div>
-        <div class="activity-text"><strong>Filter &amp; Cari</strong>Gunakan toolbar di atas tabel</div>
-      </div>
-    </div>
-    <!-- Filter Info -->
-    <div class="sb-block">
-      <div class="sb-block-head"><span class="sb-block-title">Filter Tersedia</span></div>
-      <div class="info-rows">
-        <div class="info-row"><span class="info-key">Cari ID</span><span class="info-val" style="color:#3b82f6">text search</span></div>
-        <div class="info-row"><span class="info-key">Blok Gudang</span><span class="info-val" style="color:#ff6b35">A B C D F</span></div>
-        <div class="info-row"><span class="info-key">Mode Pengiriman</span><span class="info-val" style="color:#22c55e">3 jenis</span></div>
-        <div class="info-row"><span class="info-key">Kepentingan</span><span class="info-val" style="color:#eab308">low/med/high</span></div>
-        <div class="info-row"><span class="info-key">Status</span><span class="info-val" style="color:#666">0 / 1</span></div>
-      </div>
-    </div>
-    <!-- Connection Status -->
-    <div class="sb-block" style="margin-bottom:8px;">
-      <div class="sb-block-head">
-        <span class="sb-block-title">Koneksi</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#22c55e">● aktif</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-lbl"><span class="stat-dot" style="background:#3b82f6"></span>Database</span>
-        <span class="stat-val" style="color:#666;font-size:10px">Supabase</span>
+        <span class="sb-block-title">Info Database</span>
       </div>
       <div class="stat-row">
         <span class="stat-lbl"><span class="stat-dot" style="background:#ff6b35"></span>Tabel</span>
-        <span class="stat-val" style="color:#666;font-size:10px">Train</span>
+        <span class="stat-val" style="color:#666;font-size:10px">Fact_Pengiriman</span>
       </div>
       <div class="stat-row">
-        <span class="stat-lbl"><span class="stat-dot" style="background:#22c55e"></span>Per Halaman</span>
-        <span class="stat-val" style="color:#666;font-size:10px">15 baris</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-lbl"><span class="stat-dot" style="background:#eab308"></span>Total Data</span>
-        <span class="stat-val" style="color:#eab308;font-size:10px" id="sb-total-rows">—</span>
+        <span class="stat-lbl"><span class="stat-dot" style="background:#22c55e"></span>Skema</span>
+        <span class="stat-val" style="color:#666;font-size:10px">Star Schema</span>
       </div>
     </div>
     <div class="sidebar-footer">
@@ -433,72 +154,52 @@
     </div>
   </aside>
 
-  <!-- MAIN -->
   <div class="main">
     <header class="topbar">
       <div class="topbar-left">
-        <span class="topbar-title">Data Management</span>
-        <span class="row-count" id="row-count">—</span>
+        <span class="topbar-title">Data Warehouse Management</span>
+        <span class="row-count" id="row-count">Memuat...</span>
       </div>
       <button class="btn btn-primary" id="btn-add">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg>
-        Tambah Data
+        Tambah Transaksi
       </button>
     </header>
 
-    <!-- TOOLBAR -->
     <div class="toolbar">
-      <input type="text" id="search-input" class="search-input" placeholder="Cari ID...">
-      <select id="filter-warehouse" class="filter-select">
-        <option value="">Semua Blok</option>
-        <option value="A">Blok A</option><option value="B">Blok B</option>
-        <option value="C">Blok C</option><option value="D">Blok D</option>
-        <option value="F">Blok F</option>
-      </select>
-      <select id="filter-shipment" class="filter-select">
-        <option value="">Semua Mode</option>
-        <option value="Flight">Flight</option>
-        <option value="Ship">Ship</option>
-        <option value="Road">Road</option>
-      </select>
-      <select id="filter-importance" class="filter-select">
-        <option value="">Semua Kepentingan</option>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-      </select>
-      <select id="filter-reached" class="filter-select">
+<input type="text" id="search-input" class="search-input" placeholder="Cari ID..." oninput="searchCrudData()">      <select id="filter-reached" class="filter-select">
         <option value="">Semua Status</option>
-        <option value="1">Tepat Waktu</option>
-        <option value="0">Terlambat</option>
+        <option value="0">Tepat Waktu</option>
+        <option value="1">Terlambat</option>
       </select>
-      <button class="btn btn-ghost" id="btn-reset-filter">Reset</button>
+      <button class="btn btn-ghost" id="btn-reset-filter">Reset Filter</button>
     </div>
 
-    <!-- TABLE -->
     <div class="table-container">
-      <div id="table-loading">
-        <div class="spinner"></div>
-        <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)">Memuat data...</span>
-      </div>
       <div id="data-table-wrap" style="overflow-x:auto;">
         <table>
           <thead>
             <tr>
-              <th>ID</th><th>Gudang</th><th>Pengiriman</th>
-              <th class="num">Calls</th><th class="num">Rating</th>
-              <th class="num">Biaya</th><th class="num">Prior</th>
-              <th>Kepentingan</th><th>Gender</th>
-              <th class="num">Diskon</th><th class="num">Berat</th>
-              <th>Status</th><th class="action-col">Aksi</th>
+              <th>ID</th>
+              <th>Gudang (FK)</th>
+              <th>Metode (FK)</th>
+              <th class="num">Biaya ($)</th>
+              <th class="num">Berat (g)</th>
+              <th>Kat. Berat</th>
+              <th class="num">Diskon (%)</th>
+              <th class="num">Calls</th>
+              <th class="num">Prior</th>
+              <th>Status Aktual</th>
+              <th class="action-col">Aksi</th>
             </tr>
           </thead>
-          <tbody id="data-tbody"></tbody>
+          <tbody id="crud-table-body">
+            <tr><td colspan="11" class="empty-row">Menghubungkan ke Supabase...</td></tr>
+          </tbody>
         </table>
       </div>
     </div>
 
-    <!-- PAGINATION -->
     <div class="pagination-bar">
       <span style="font-family:var(--mono);font-size:11px;color:var(--text-muted)" id="page-info">—</span>
       <div id="pagination"></div>
@@ -506,12 +207,10 @@
   </div>
 </div>
 
-<!-- MODAL ADD/EDIT -->
 <div class="modal-overlay" id="modal-overlay">
-  <div class="modal-content">
     <div class="modal-box">
       <div class="modal-header">
-        <span class="modal-title" id="modal-title">Tambah Data</span>
+        <span class="modal-title" id="modal-title">Tambah Data Fakta</span>
         <button class="modal-close" id="modal-close">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -521,312 +220,53 @@
           <input type="hidden" id="field-id">
           <div class="form-grid">
             <div class="form-group">
-              <label class="form-label">Blok Gudang</label>
-              <select id="field-warehouse" class="form-select" required>
-                <option value="A">Blok A</option><option value="B">Blok B</option>
-                <option value="C">Blok C</option><option value="D">Blok D</option>
-                <option value="F">Blok F</option>
+              <label class="form-label">ID Gudang (1 - 15)</label>
+              <input type="number" id="field-gudang" min="1" max="15" class="form-input" required placeholder="Contoh: 3">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Metode Kirim</label>
+              <select id="field-metode" class="form-select" required>
+                <option value="1">1 - Flight (Pesawat)</option>
+                <option value="2">2 - Ship (Kapal)</option>
+                <option value="3">3 - Road (Darat)</option>
               </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Mode Pengiriman</label>
-              <select id="field-shipment" class="form-select" required>
-                <option value="Flight">Flight</option>
-                <option value="Ship">Ship</option>
-                <option value="Road">Road</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Customer Care Calls</label>
-              <input type="number" id="field-care-calls" class="form-input" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Rating (1–5)</label>
-              <input type="number" id="field-rating" min="1" max="5" class="form-input" required>
             </div>
             <div class="form-group">
               <label class="form-label">Biaya Produk ($)</label>
               <input type="number" id="field-cost" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Prior Purchases</label>
-              <input type="number" id="field-prior" class="form-input" required>
+              <label class="form-label">Berat Aktual (Gram)</label>
+              <input type="number" id="field-weight" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Kepentingan Produk</label>
-              <select id="field-importance" class="form-select" required>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Gender</label>
-              <select id="field-gender" class="form-select" required>
-                <option value="M">Pria (M)</option>
-                <option value="F">Wanita (F)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Diskon (%)</label>
+              <label class="form-label">Diskon Diberikan (%)</label>
               <input type="number" id="field-discount" class="form-input" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Berat (gram)</label>
-              <input type="number" id="field-weight" class="form-input" required>
+              <label class="form-label">Customer Care Calls</label>
+              <input type="number" id="field-calls" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prior Purchases</label>
+              <input type="number" id="field-prior" class="form-input" required>
             </div>
             <div class="form-group full">
-              <label class="form-label">Status Pengiriman</label>
+              <label class="form-label">Apakah Pengiriman Terlambat?</label>
               <select id="field-reached" class="form-select" required>
-                <option value="1">✓ Tepat Waktu</option>
-                <option value="0">✗ Terlambat</option>
+                <option value="1">Ya, Terlambat (1)</option>
+                <option value="0">Tidak, Tepat Waktu (0)</option>
               </select>
             </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
-        <button class="btn btn-primary" id="btn-save" onclick="document.getElementById('entry-form').requestSubmit()">Simpan</button>
+        <button class="btn btn-ghost" id="btn-cancel">Batal</button>
+        <button class="btn btn-primary" id="btn-save">Simpan Transaksi</button>
       </div>
     </div>
-  </div>
 </div>
 
-<!-- MODAL CONFIRM DELETE -->
-<div class="modal-overlay" id="confirm-overlay">
-  <div class="modal-content">
-    <div class="confirm-box">
-      <div class="confirm-icon">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-      </div>
-      <div class="confirm-title">Hapus Data?</div>
-      <div class="confirm-desc">Data yang dihapus tidak bisa dikembalikan. Lanjutkan?</div>
-      <div class="confirm-actions">
-        <button class="btn btn-danger" id="confirm-ok">Hapus</button>
-        <button class="btn btn-ghost" id="confirm-cancel">Batal</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script src="config.js"></script>
-<script>
-let currentPage = 1;
-const PAGE_SIZE = 15;
-let totalRows = 0;
-let activeFilters = {};
-let editingId = null;
-let pendingDeleteId = null;
-
-function tickClock() {
-  const s = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const el = document.getElementById('sb-clock'); if(el) el.textContent = s;
-}
-setInterval(tickClock, 1000); tickClock();
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadTable();
-  bindFilters();
-  bindModal();
-  bindForm();
-  bindDelete();
-});
-
-async function loadTable() {
-  setLoading(true);
-  try {
-    const { data, count } = await fetchAllData(activeFilters, currentPage, PAGE_SIZE);
-    totalRows = count || 0;
-    renderTable(data);
-    renderPagination();
-    const start = (currentPage - 1) * PAGE_SIZE + 1;
-    const end = Math.min(currentPage * PAGE_SIZE, totalRows);
-    document.getElementById('row-count').textContent = `${totalRows.toLocaleString()} baris`;
-    const nb = document.getElementById('nav-badge-total'); if(nb) nb.textContent = totalRows.toLocaleString();
-    const sr = document.getElementById('sb-total-rows'); if(sr) sr.textContent = totalRows.toLocaleString();
-    document.getElementById('page-info').textContent = totalRows > 0 ? `${start}–${end} dari ${totalRows.toLocaleString()}` : '0 hasil';
-  } catch (err) {
-    showToastCrud('Gagal memuat: ' + err.message, 'error');
-  } finally {
-    setLoading(false);
-  }
-}
-
-function renderTable(data) {
-  const tbody = document.getElementById('data-tbody');
-  if (!data || !data.length) {
-    tbody.innerHTML = `<tr><td colspan="13" class="empty-row">Tidak ada data ditemukan</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = data.map(d => `
-    <tr data-id="${d.ID}">
-      <td><span class="id-badge">#${d.ID}</span></td>
-      <td><span class="badge badge-block">${d.Warehouse_block}</span></td>
-      <td><span class="badge badge-ship ship-${(d.Mode_of_Shipment||'').toLowerCase()}">${d.Mode_of_Shipment}</span></td>
-      <td class="num">${d.Customer_care_calls}</td>
-      <td class="num">${d.Customer_rating}★</td>
-      <td class="num">$${(d.Cost_of_the_Product||0).toLocaleString()}</td>
-      <td class="num">${d.Prior_purchases}</td>
-      <td><span class="badge imp-${d.Product_importance}">${d.Product_importance}</span></td>
-      <td>${d.Gender === 'M' ? '♂ Pria' : '♀ Wanita'}</td>
-      <td class="num">${d.Discount_offered}%</td>
-      <td class="num">${(d.Weight_in_gms||0).toLocaleString()}g</td>
-      <td>
-        <span class="status-badge ${Number(d['Reached.on.Time_Y.N'])===1?'status-on':'status-late'}">
-          ${Number(d['Reached.on.Time_Y.N'])===1?'✓ Tepat':'✗ Telat'}
-        </span>
-      </td>
-      <td class="action-col">
-        <button class="btn-icon" onclick="openEditModal(${d.ID})" title="Edit">✏️</button>
-        <button class="btn-icon" onclick="confirmDelete(${d.ID})" title="Hapus">🗑️</button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-function renderPagination() {
-  const total = Math.ceil(totalRows / PAGE_SIZE);
-  const pag = document.getElementById('pagination');
-  if (total <= 1) { pag.innerHTML = ''; return; }
-  let html = `<button onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
-  pageRange(currentPage, total).forEach(p => {
-    if (p === '...') html += `<span class="pag-dots">…</span>`;
-    else html += `<button class="${p===currentPage?'pag-active':''}" onclick="goPage(${p})">${p}</button>`;
-  });
-  html += `<button onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
-  pag.innerHTML = html;
-}
-function pageRange(cur, total) {
-  if (total <= 7) return Array.from({length:total},(_,i)=>i+1);
-  if (cur <= 4) return [1,2,3,4,5,'...',total];
-  if (cur >= total-3) return [1,'...',total-4,total-3,total-2,total-1,total];
-  return [1,'...',cur-1,cur,cur+1,'...',total];
-}
-function goPage(p) {
-  const total = Math.ceil(totalRows / PAGE_SIZE);
-  if (p < 1 || p > total) return;
-  currentPage = p; loadTable();
-}
-
-function bindFilters() {
-  ['filter-warehouse','filter-shipment','filter-importance','filter-reached'].forEach(id =>
-    document.getElementById(id)?.addEventListener('change', applyFilters)
-  );
-  let t;
-  document.getElementById('search-input')?.addEventListener('input', () => { clearTimeout(t); t = setTimeout(applyFilters, 400); });
-  document.getElementById('btn-reset-filter')?.addEventListener('click', resetFilters);
-}
-function applyFilters() {
-  activeFilters = {};
-  const w = document.getElementById('filter-warehouse').value; if (w) activeFilters.warehouse_block = w;
-  const s = document.getElementById('filter-shipment').value; if (s) activeFilters.mode_of_shipment = s;
-  const i = document.getElementById('filter-importance').value; if (i) activeFilters.product_importance = i;
-  const r = document.getElementById('filter-reached').value; if (r !== '') activeFilters.reached = r;
-  const q = document.getElementById('search-input').value; if (q) activeFilters.search = q;
-  currentPage = 1; loadTable();
-}
-function resetFilters() {
-  ['filter-warehouse','filter-shipment','filter-importance','filter-reached'].forEach(id => { document.getElementById(id).value = ''; });
-  document.getElementById('search-input').value = '';
-  activeFilters = {}; currentPage = 1; loadTable();
-}
-
-function bindModal() {
-  document.getElementById('btn-add').addEventListener('click', openAddModal);
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
-  document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
-}
-function openAddModal() {
-  editingId = null;
-  document.getElementById('modal-title').textContent = 'Tambah Data';
-  document.getElementById('entry-form').reset();
-  document.getElementById('field-id').value = '';
-  document.getElementById('modal-overlay').classList.add('active');
-}
-async function openEditModal(id) {
-  try {
-    const row = await fetchRowById(id);
-    editingId = id;
-    document.getElementById('modal-title').textContent = 'Edit Data #' + id;
-    document.getElementById('field-id').value = row.ID;
-    document.getElementById('field-warehouse').value = row.Warehouse_block;
-    document.getElementById('field-shipment').value = row.Mode_of_Shipment;
-    document.getElementById('field-care-calls').value = row.Customer_care_calls;
-    document.getElementById('field-rating').value = row.Customer_rating;
-    document.getElementById('field-cost').value = row.Cost_of_the_Product;
-    document.getElementById('field-prior').value = row.Prior_purchases;
-    document.getElementById('field-importance').value = row.Product_importance;
-    document.getElementById('field-gender').value = row.Gender;
-    document.getElementById('field-discount').value = row.Discount_offered;
-    document.getElementById('field-weight').value = row.Weight_in_gms;
-    document.getElementById('field-reached').value = row['Reached.on.Time_Y.N'];
-    document.getElementById('modal-overlay').classList.add('active');
-  } catch (err) { showToastCrud('Gagal memuat: ' + err.message, 'error'); }
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('active');
-  editingId = null;
-}
-
-function bindForm() {
-  document.getElementById('entry-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('btn-save');
-    btn.disabled = true; btn.textContent = 'Menyimpan...';
-    const row = {
-      Warehouse_block: document.getElementById('field-warehouse').value,
-      Mode_of_Shipment: document.getElementById('field-shipment').value,
-      Customer_care_calls: +document.getElementById('field-care-calls').value,
-      Customer_rating: +document.getElementById('field-rating').value,
-      Cost_of_the_Product: +document.getElementById('field-cost').value,
-      Prior_purchases: +document.getElementById('field-prior').value,
-      Product_importance: document.getElementById('field-importance').value,
-      Gender: document.getElementById('field-gender').value,
-      Discount_offered: +document.getElementById('field-discount').value,
-      Weight_in_gms: +document.getElementById('field-weight').value,
-      'Reached.on.Time_Y.N': +document.getElementById('field-reached').value,
-    };
-    try {
-      if (editingId) { await updateRow(editingId, row); showToastCrud('Data diperbarui ✓', 'success'); }
-      else { await insertRow(row); showToastCrud('Data ditambahkan ✓', 'success'); }
-      closeModal(); loadTable();
-    } catch (err) { showToastCrud('Gagal: ' + err.message, 'error'); }
-    finally { btn.disabled = false; btn.textContent = 'Simpan'; }
-  });
-}
-
-function bindDelete() {
-  document.getElementById('confirm-ok').addEventListener('click', async () => {
-    if (!pendingDeleteId) return;
-    try {
-      await deleteRow(pendingDeleteId);
-      showToastCrud('Data #' + pendingDeleteId + ' dihapus ✓', 'success');
-      closeConfirm(); loadTable();
-    } catch (err) { showToastCrud('Gagal: ' + err.message, 'error'); closeConfirm(); }
-  });
-}
-function confirmDelete(id) {
-  pendingDeleteId = id;
-  document.getElementById('confirm-overlay').classList.add('active');
-}
-function closeConfirm() {
-  pendingDeleteId = null;
-  document.getElementById('confirm-overlay').classList.remove('active');
-}
-
-function setLoading(v) {
-  document.getElementById('table-loading').style.display = v ? 'flex' : 'none';
-  document.getElementById('data-table-wrap').style.opacity = v ? '0.4' : '1';
-}
-function showToastCrud(msg, type='info') {
-  const t = document.createElement('div');
-  t.className = `toast toast-${type}`; t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add('toast-show'), 10);
-  setTimeout(() => { t.classList.remove('toast-show'); setTimeout(() => t.remove(), 300); }, 3500);
-}
-</script>
 </body>
 </html>
